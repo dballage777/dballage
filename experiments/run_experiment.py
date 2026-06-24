@@ -31,7 +31,7 @@ from v12.data import load_prices
 from v12.features import build_dataset
 from v12.validation import PurgedWalkForward, assert_no_leakage
 from v12.models import build_model, StackingEnsemble
-from v12.backtest import run_backtest
+from v12.backtest import run_backtest, run_long_short
 from v12.evaluation import (performance_summary, information_coefficient,
                             monte_carlo_bootstrap, stress_tests, build_report)
 from v12.utils import get_logger
@@ -154,6 +154,10 @@ def run(config: ExperimentConfig) -> dict:
     bt = run_backtest(results[best]["oos"], data.close, data.close[config.data.benchmark],
                       config.backtest, breadth=breadth)
 
+    # 5b. Long-short (dollar-neutral) signal probe — nets out survivorship beta
+    ls_ret = run_long_short(results[best]["oos"], data.close, config.backtest)
+    ls_perf = performance_summary(ls_ret, "long_short")
+
     # 6. Evaluation
     strat_perf = performance_summary(bt.strategy_returns, "strategy")
     spy_perf = performance_summary(bt.spy_returns, "SPY")
@@ -170,10 +174,26 @@ def run(config: ExperimentConfig) -> dict:
         f"| {f} | {imp:.5f} |" for f, imp in top_imp)
 
     beat = strat_perf["sharpe"] > spy_perf["sharpe"] and bt.strategy_equity.iloc[-1] > bt.spy_equity.iloc[-1]
-    failure = _failure_analysis(strat_perf, spy_perf, ic_full, mc, beat)
+    failure = _failure_analysis(strat_perf, spy_perf, ic_full, mc, beat, ls_perf,
+                                universe_meta["survivorship_safe"])
     nxt = _next_experiment(results, ic_full, beat)
 
     bias_note = ("✅ " if universe_meta["survivorship_safe"] else "⚠️ ") + universe_meta["note"]
+
+    ls_sharpe = ls_perf["sharpe"]
+    if ls_sharpe == ls_sharpe and ls_sharpe >= 0.7 and ls_perf["total_return"] > 0:
+        ls_note = ("✅ Long-short spread is **positive after costs** (Sharpe "
+                   f"{ls_sharpe:.2f}). Because survivorship lifts long & short legs alike "
+                   "and cancels in the spread, this is evidence of genuine cross-sectional "
+                   "selection skill — not just owning past winners.")
+    elif ls_sharpe == ls_sharpe and ls_sharpe >= 0.3:
+        ls_note = (f"➖ Long-short spread is **modest** (Sharpe {ls_sharpe:.2f}). Some real "
+                   "selection skill may exist but it is weak once survivorship is netted out.")
+    else:
+        ls_note = (f"⚠️ Long-short spread is **flat/negative** (Sharpe {ls_sharpe:.2f}). The "
+                   "long-only outperformance is most likely **survivorship beta**, not "
+                   "selection skill. Do not trust the §4 SPY win.")
+
     ctx = {
         "data_source": data.source,
         "universe_meta": universe_meta,
@@ -187,6 +207,8 @@ def run(config: ExperimentConfig) -> dict:
         "model_table": model_table,
         "strategy_perf": strat_perf,
         "spy_perf": spy_perf,
+        "long_short_perf": ls_perf,
+        "long_short_note": ls_note,
         "strategy_final": float(bt.strategy_equity.iloc[-1]),
         "spy_final": float(bt.spy_equity.iloc[-1]),
         "contrib_total": bt.contributions_total,
@@ -205,7 +227,7 @@ def run(config: ExperimentConfig) -> dict:
     metrics_path = os.path.join(config.output_dir, f"{config.name}_metrics.json")
     with open(metrics_path, "w") as f:
         json.dump({"best_model": best, "strategy": strat_perf, "spy": spy_perf,
-                   "ic": ic_full, "monte_carlo": mc, "stress": stress,
+                   "long_short": ls_perf, "ic": ic_full, "monte_carlo": mc, "stress": stress,
                    "strategy_final": ctx["strategy_final"], "spy_final": ctx["spy_final"],
                    "data_source": data.source, "survivorship_safe": universe_meta["survivorship_safe"],
                    "model_ic": {k: v["mean_ic"] for k, v in results.items()}},
@@ -233,8 +255,15 @@ def _changes_block(config, best):
             f"{' + stacking' if config.models.use_stacking else ''}; selected **{best}** by OOS rank-IC.")
 
 
-def _failure_analysis(strat, spy, ic, mc, beat):
+def _failure_analysis(strat, spy, ic, mc, beat, ls=None, survivorship_safe=True):
     pts = []
+    if ls is not None and not survivorship_safe:
+        lss = ls["sharpe"]
+        if not (lss == lss and lss >= 0.7):
+            pts.append(f"- **Survivorship suspicion**: long-short spread Sharpe {lss:.2f} is "
+                       "weak/negative on a survivorship-biased universe — the §4 SPY win is "
+                       "likely market/survivorship beta, not selection skill. Re-test on a "
+                       "point-in-time or broader universe before believing it.")
     if ic["ic_mean"] != ic["ic_mean"] or abs(ic["ic_mean"]) < 0.02:
         pts.append(f"- **Weak signal**: OOS rank-IC={ic['ic_mean']:.4f} (|IC|<0.02 ≈ noise). "
                    "The features still don't rank forward returns well enough.")

@@ -68,6 +68,16 @@ def build_report(config, ctx: Dict) -> str:
                  f"Strategy **${ctx['strategy_final']:,.2f}** vs "
                  f"SPY **${ctx['spy_final']:,.2f}**")
 
+    # 4b. Long-short signal probe (survivorship-neutral)
+    if "long_short_perf" in ctx:
+        lines.append("\n## 4b. Long-short signal probe (dollar-neutral, survivorship-cancelling)")
+        ls = ctx["long_short_perf"]
+        ls_tbl = ["| metric | long-short spread |", "|---|---|"]
+        for k in ["cagr", "ann_vol", "sharpe", "sortino", "max_drawdown", "total_return"]:
+            ls_tbl.append(f"| {k} | {_fmt(ls[k])} |")
+        lines.append("\n".join(ls_tbl))
+        lines.append("\n" + ctx.get("long_short_note", ""))
+
     # 5. Monte Carlo + stress
     lines.append("\n## 5. Monte-Carlo & stress")
     lines.append(_table(ctx["monte_carlo"]))

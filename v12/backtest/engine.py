@@ -166,3 +166,49 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
     log.info("Backtest: %d days, %d rebalances, avg turnover %.2f, contrib $%.0f",
              len(idx), len(turnovers), result.avg_turnover, contrib_total)
     return result
+
+
+def run_long_short(predictions: pd.Series, close: pd.DataFrame, cfg) -> pd.Series:
+    """Dollar-neutral long-short spread return (research diagnostic).
+
+    Each rebalance: long the top quantile, short the bottom quantile, equal
+    weight within each leg, scaled to gross exposure 1.0 (long +0.5 / short
+    -0.5, net 0). Net of the same commission+slippage on turnover.
+
+    Why this matters: survivorship bias lifts essentially every name in a
+    current-constituents universe, so it largely *cancels* in the long-short
+    spread. A spread that is solidly positive after costs is evidence of real
+    cross-sectional selection skill rather than just owning past winners. (It
+    is a signal-quality probe, not necessarily a deployable strategy — shorting
+    has its own borrow/availability constraints.)
+    """
+    daily_ret = close.pct_change()
+    pred_dates = predictions.index.get_level_values("date").unique().sort_values()
+    dates = [d for d in pred_dates if d in daily_ret.index]
+    rebal = set(dates[::cfg.rebalance_days])
+    pred_date_level = predictions.index.get_level_values("date")
+
+    cur_w = pd.Series(dtype=float)
+    out = []
+    for i, d in enumerate(dates):
+        gross = 0.0
+        if i > 0 and len(cur_w) > 0:
+            r = daily_ret.loc[d, cur_w.index].fillna(0.0)
+            gross = float((cur_w * r).sum())
+        cost = 0.0
+        if d in rebal and d in pred_date_level:
+            scores = predictions.loc[d].dropna().sort_values(ascending=False)
+            if len(scores) >= 4:
+                k = max(int(np.ceil(len(scores) * cfg.top_quantile)), 1)
+                longs, shorts = scores.index[:k], scores.index[-k:]
+                w_new = pd.concat([pd.Series(0.5 / len(longs), index=longs),
+                                   pd.Series(-0.5 / len(shorts), index=shorts)])
+                idx = cur_w.index.union(w_new.index)
+                turn = float((w_new.reindex(idx).fillna(0)
+                              - cur_w.reindex(idx).fillna(0)).abs().sum())
+                cost = turnover_cost(turn, cfg.commission_bps, cfg.slippage_bps)
+                cur_w = w_new
+        out.append((d, gross - cost))
+
+    idx = [d for d, _ in out]
+    return pd.Series([r for _, r in out], index=idx)
