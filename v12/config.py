@@ -59,7 +59,11 @@ class FeatureConfig:
 @dataclass
 class ModelConfig:
     # Which models from the zoo to compare. Stacking is layered on top.
-    candidates: List[str] = field(default_factory=lambda: ["ridge", "elasticnet", "rf", "lgbm", "xgb"])
+    # RandomForest is intentionally NOT a default: on small (e.g. 2-core
+    # Codespace) machines it dominated runtime (~18 min/run) while badly
+    # trailing the linear/boosted models on real data. It stays available in
+    # the zoo (add "rf" here to include it). Linear + boosting is the default.
+    candidates: List[str] = field(default_factory=lambda: ["ridge", "elasticnet", "lgbm", "xgb"])
     use_stacking: bool = True
     random_state: int = 42
 

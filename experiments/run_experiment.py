@@ -51,7 +51,10 @@ def _walk_forward_predict(panel, feature_cols, folds, model_name, cfg_models):
         Xtr, ytr = X_all.iloc[tr_idx].values, y_all.iloc[tr_idx].values
         Xte = X_all.iloc[te_idx].values
         if model_name == "stack":
-            model = StackingEnsemble(cfg_models.candidates, cfg_models.random_state)
+            # exclude RandomForest from the stack base: it is the runtime
+            # bottleneck on small machines and is retrained many times here.
+            stack_base = [m for m in cfg_models.candidates if m != "rf"]
+            model = StackingEnsemble(stack_base, cfg_models.random_state)
         else:
             model = build_model(model_name, cfg_models.random_state)
         if model is None:
@@ -226,7 +229,8 @@ def _changes_block(config, best):
             f"return (predict relative selection, not market beta).\n"
             f"- Validation upgraded to **purged + embargoed walk-forward** with executable "
             f"leakage assertions (directly addresses the V1-V9A inflated-Sharpe failures).\n"
-            f"- Compared {len(config.models.candidates)} models + stacking; selected **{best}** by OOS rank-IC.")
+            f"- Compared {len(config.models.candidates)} models"
+            f"{' + stacking' if config.models.use_stacking else ''}; selected **{best}** by OOS rank-IC.")
 
 
 def _failure_analysis(strat, spy, ic, mc, beat):
@@ -265,6 +269,9 @@ def parse_args():
     p.add_argument("--quick", action="store_true", help="fast smoke test (short window, fewer folds)")
     p.add_argument("--dca", choices=["none", "dca", "variable"], default=None)
     p.add_argument("--name", default=None)
+    p.add_argument("--no-stack", action="store_true", help="skip the stacking ensemble (faster)")
+    p.add_argument("--models", default=None,
+                   help="comma-separated model subset, e.g. 'elasticnet,lgbm'")
     return p.parse_args()
 
 
@@ -278,6 +285,10 @@ def main():
         cfg.validation.train_min_days = 252
         cfg.models.candidates = ["ridge", "lgbm"]
         cfg.name = "v12_quick"
+    if args.models:
+        cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
+    if args.no_stack:
+        cfg.models.use_stacking = False
     if args.dca:
         cfg.backtest.dca_mode = args.dca
     if args.name:
