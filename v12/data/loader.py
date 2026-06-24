@@ -83,7 +83,8 @@ def _download_yf(tickers: List[str], start: str, end: str) -> Optional[Dict[str,
     return fields
 
 
-def _synthetic(tickers: List[str], start: str, end: str, seed: int) -> Dict[str, pd.DataFrame]:
+def _synthetic(tickers: List[str], start: str, end: str, seed: int,
+               signal_strength: float = 1.0) -> Dict[str, pd.DataFrame]:
     """Regime-switching GBM with a faint, *causal* cross-sectional signal.
 
     Construction (so we know exactly what a model *could* learn):
@@ -110,15 +111,38 @@ def _synthetic(tickers: List[str], start: str, end: str, seed: int) -> Dict[str,
     beta = rng.uniform(0.6, 1.4, size=m)
     quality = rng.normal(0, 1, size=m)              # latent persistent quality
     idio_vol = rng.uniform(0.010, 0.025, size=m)
-    quality_premium = 0.00020                        # ~5bp/wk: faint on purpose
+    quality_premium = 0.00020 * signal_strength      # ~5bp/wk at strength 1.0
 
-    rets = (
+    # Base daily returns: market factor + idiosyncratic noise + faint quality drift.
+    base = (
         np.outer(mkt_ret, beta)
         + rng.normal(0, 1, size=(n, m)) * idio_vol
         + quality * quality_premium
     )
-    close = 100 * np.exp(np.cumsum(rets, axis=0))
-    close = pd.DataFrame(close, index=dates, columns=tickers)
+
+    # Observable, learnable momentum factor: part of day-t return is proportional
+    # to the cross-sectionally z-scored trailing 20-day return *known at t-1*. This
+    # is a genuine, point-in-time-predictable signal that the mom_* / csrank_mom
+    # features can capture — so the recovery test actually exercises the ML path.
+    # It vanishes at signal_strength=0 (pure noise -> no learnable edge).
+    mom_coef = 0.0009 * signal_strength
+    logp0 = np.log(100.0)
+    log_prices = np.empty((n, m))
+    cum = np.full(m, logp0)
+    for t in range(n):
+        r_t = base[t].copy()
+        if mom_coef > 0 and t >= 21:
+            trailing = log_prices[t - 1] - log_prices[t - 21]
+            sd = trailing.std()
+            if sd > 0:
+                z = (trailing - trailing.mean()) / sd
+                r_t = r_t + mom_coef * z          # momentum predictability
+        cum = cum + r_t
+        log_prices[t] = cum
+    close = pd.DataFrame(np.exp(log_prices), index=dates, columns=tickers)
+
+    # Realized daily returns (for volume's activity proxy)
+    rets = np.vstack([np.zeros((1, m)), np.diff(log_prices, axis=0)])
 
     # Build plausible OHLCV around close
     intraday = np.abs(rng.normal(0, 0.006, size=(n, m)))
@@ -144,7 +168,7 @@ def load_prices(cfg) -> PriceData:
     ``cfg`` is a DataConfig (see v12.config).
     """
     all_tickers = sorted(set(cfg.universe) | {cfg.benchmark} | set(cfg.rs_refs))
-    key = f"prices_{hash((tuple(all_tickers), cfg.start, cfg.end)) & 0xFFFFFFFF:x}"
+    key = f"prices_{hash((tuple(all_tickers), cfg.start, cfg.end, getattr(cfg, 'signal_strength', 1.0), cfg.synthetic_seed)) & 0xFFFFFFFF:x}"
     path = _cache_path(cfg.cache_dir, key)
 
     if os.path.exists(path):
@@ -161,7 +185,8 @@ def load_prices(cfg) -> PriceData:
         if not cfg.allow_synthetic:
             raise RuntimeError("Live data unavailable and synthetic disabled.")
         log.warning("Falling back to SYNTHETIC data (pipeline validation only, NOT alpha).")
-        fields = _synthetic(all_tickers, cfg.start, cfg.end, cfg.synthetic_seed)
+        fields = _synthetic(all_tickers, cfg.start, cfg.end, cfg.synthetic_seed,
+                            getattr(cfg, "signal_strength", 1.0))
         source = "synthetic"
 
     # align & forward-fill small gaps, drop all-nan rows

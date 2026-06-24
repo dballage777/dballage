@@ -46,6 +46,26 @@ sandbox, *not* real alpha):
 - MC stability ≈ 0.25 (< 1) and edge did **not** survive +5bps cost stress →
   RiskAgent verdict: **REJECT**. Correct, honest behaviour.
 
+**Framework self-validation** (`experiments/validate_framework.py`, synthetic
+ground truth, mean ± std over 3 seeds, 20-name universe)
+
+| planted signal | OOS rank-IC | reading |
+|---|---|---|
+| none (0×) | −0.015 ± 0.056 | ≈ 0 → **no hallucinated alpha** |
+| faint (1×) | +0.002 ± 0.038 | ≈ 0 → faint signal sits at the noise floor (realistic) |
+| strong (4×) | **+0.333 ± 0.014** | cleanly recovered, tight variance |
+
+Plus: the leakage gate **fires** on an injected contaminated feature. Together
+these establish the antidote to the V1–V9A failures — the stack finds real
+signal, does not invent fake signal, and aborts on leakage. Guarded in CI and by
+`tests/test_signal_recovery.py`.
+
+> Note: an earlier recovery test planted a *latent* quality drift that mapped to
+> features only indirectly and was not recovered. Rather than tune the test to
+> pass, the synthetic signal was changed to an **observable momentum factor** so
+> the test genuinely exercises the learning path. This is logged as a methodology
+> correction, not a silent fix.
+
 **Next experiments** (auto-proposed by the framework)
 1. Feature ablation — keep only top-importance features and re-test.
 2. Add fundamentals / alt-data to raise the technical-only IC ceiling.

@@ -38,6 +38,10 @@ class DataConfig:
     # (e.g. restricted network). Synthetic data is for *pipeline validation only*.
     allow_synthetic: bool = True
     synthetic_seed: int = 7
+    # Scales the faint planted cross-sectional signal in synthetic data.
+    # 0.0 = pure noise (no learnable edge); 1.0 = realistic-faint (default).
+    # Used by the framework-validation harness to test signal recovery.
+    signal_strength: float = 1.0
 
 
 @dataclass

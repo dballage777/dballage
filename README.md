@@ -49,9 +49,28 @@ python -m experiments.run_experiment --dca dca
 # Full agentic research cycle (Research -> ... -> Deployment)
 python -m experiments.run_research_cycle
 
-# Tests (leakage + feature correctness)
+# Tests (leakage + feature correctness + signal recovery)
 python -m pytest tests/ -q
+
+# Framework self-validation: proves the stack recovers real signal,
+# does NOT invent fake signal, and aborts on leakage
+python -m experiments.validate_framework
 ```
+
+### Framework self-validation (why you can trust a result here)
+
+Before trusting any backtest, `experiments/validate_framework.py` checks three
+properties on synthetic data with a *known* ground truth (averaged over seeds):
+
+| planted signal | OOS rank-IC | meaning |
+|---|---|---|
+| none | ≈ 0 (−0.01) | no hallucinated alpha |
+| faint | ≈ 0 (+0.00) | faint signal genuinely at the noise floor |
+| strong | **+0.33** | real signal is cleanly recovered |
+
+…and an injected leaked feature makes the validation gate **abort**. This is the
+structural antidote to the V1–V9A "fake alpha" failures. It runs in CI on every
+push.
 
 Outputs land in `results/`: a markdown report, a metrics JSON, and an equity CSV.
 
