@@ -14,6 +14,21 @@ def cross_sectional_rank(panel: pd.DataFrame) -> pd.DataFrame:
     return panel.rank(axis=1, pct=True) - 0.5
 
 
+def sector_neutral_rank(panel: pd.DataFrame, sector_map: dict) -> pd.DataFrame:
+    """Rank each name *within its sector* per date -> [-0.5, 0.5].
+
+    Removes the sector tilt: a name is scored only against its sector peers, so a
+    high score means "best in sector", not "in the hot sector".
+    """
+    import pandas as pd
+    sectors = pd.Series({t: sector_map.get(t, "Other") for t in panel.columns})
+    out = pd.DataFrame(index=panel.index, columns=panel.columns, dtype=float)
+    for _, grp in sectors.groupby(sectors):
+        cols = list(grp.index)
+        out[cols] = panel[cols].rank(axis=1, pct=True) - 0.5
+    return out
+
+
 def winsorize_cross_section(panel: pd.DataFrame, pct: float = 0.01) -> pd.DataFrame:
     if pct <= 0:
         return panel

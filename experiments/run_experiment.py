@@ -319,6 +319,8 @@ def parse_args():
     p.add_argument("--no-kelly", action="store_true", help="disable the fractional-Kelly risk budget")
     p.add_argument("--fundamentals", action="store_true",
                    help="add point-in-time SEC EDGAR fundamentals (value/quality/growth)")
+    p.add_argument("--sector-neutral", action="store_true",
+                   help="sector-neutralize ranks and target (V13 enhancement #1)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -356,6 +358,8 @@ def main():
         cfg.backtest.use_kelly = False
     if args.fundamentals:
         cfg.features.use_fundamentals = True
+    if args.sector_neutral:
+        cfg.features.sector_neutral = True
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

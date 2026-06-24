@@ -19,7 +19,7 @@ from ..utils import get_logger
 from . import technical as T
 from . import relative as R
 from .breadth import compute_breadth
-from .cross_sectional import cross_sectional_rank, winsorize_cross_section
+from .cross_sectional import cross_sectional_rank, sector_neutral_rank, winsorize_cross_section
 
 log = get_logger("features")
 
@@ -102,9 +102,16 @@ class FeaturePipeline:
                 {t: -per_name[t]["realized_vol_60"].fillna(0) + per_name[t]["trend_r2"].fillna(0)
                  for t in names}),
         }
-        cs_ranks = {k: cross_sectional_rank(v) for k, v in base_for_rank.items()}
+        sector_neutral = getattr(self.cfg, "sector_neutral", False)
+        if sector_neutral:
+            from ..data.sectors import SECTOR_MAP
+            cs_ranks = {k: sector_neutral_rank(v, SECTOR_MAP) for k, v in base_for_rank.items()}
+            log.info("Sector-neutral ranking enabled (%d sectors).",
+                     len(set(SECTOR_MAP.get(t, "Other") for t in names)))
+        else:
+            cs_ranks = {k: cross_sectional_rank(v) for k, v in base_for_rank.items()}
 
-        # --- target: forward h-day return, cross-sectionally de-meaned ---
+        # --- target: forward h-day return, de-meaned (universe or within-sector) ---
         h = self.cfg.target_horizon
         fwd = data.close[names].shift(-h) / data.close[names] - 1.0
         # Point-in-time universe masking (survivorship-bias control): names that
@@ -115,7 +122,15 @@ class FeaturePipeline:
             mask = mask.reindex(index=data.close.index, columns=names).fillna(False)
             fwd = fwd.where(mask)
             log.info("Applied point-in-time membership mask (survivorship-safe).")
-        target = fwd.sub(fwd.mean(axis=1), axis=0)  # market-neutral label
+        if sector_neutral:
+            from ..data.sectors import SECTOR_MAP
+            sec = pd.Series({t: SECTOR_MAP.get(t, "Other") for t in fwd.columns})
+            target = fwd.copy()
+            for _, grp in sec.groupby(sec):
+                cols = list(grp.index)
+                target[cols] = fwd[cols].sub(fwd[cols].mean(axis=1), axis=0)  # within-sector label
+        else:
+            target = fwd.sub(fwd.mean(axis=1), axis=0)  # market-neutral label
 
         # --- assemble long panel ---
         frames = []

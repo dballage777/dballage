@@ -73,6 +73,9 @@ class FeatureConfig:
     # Add point-in-time SEC EDGAR fundamentals (value/quality/growth) as
     # cross-sectionally ranked features. Off by default (needs network).
     use_fundamentals: bool = False
+    # Sector-neutralize: rank signals and de-mean the target WITHIN sector,
+    # removing sector bets (V13 enhancement #1).
+    sector_neutral: bool = False
 
 
 @dataclass
