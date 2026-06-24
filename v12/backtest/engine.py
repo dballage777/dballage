@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from ..portfolio import compute_weights
-from ..risk import vol_target_scalar, cash_regime_scalar
+from ..risk import vol_target_scalar, cash_regime_scalar, kelly_exposure
 from ..utils import get_logger
 from .costs import turnover_cost
 
@@ -112,6 +112,9 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
                     if cfg.vol_target_annual and len(recent_port_rets) > 20:
                         exposure *= vol_target_scalar(
                             pd.Series(recent_port_rets), cfg.vol_target_annual)
+                    if getattr(cfg, "use_kelly", False) and len(recent_port_rets) > 20:
+                        exposure *= kelly_exposure(
+                            pd.Series(recent_port_rets), cfg.kelly_fraction_cap)
                     w_new = w_new * exposure
 
                     # ---- turnover & cost ----

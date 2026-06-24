@@ -22,6 +22,20 @@ DEFAULT_UNIVERSE: List[str] = [
 BENCHMARK = "SPY"
 RELATIVE_STRENGTH_REFS: List[str] = ["SPY", "QQQ", "XLK", "XLF", "XLY", "XLI"]
 
+# Broader, sector-diversified universe for robustness testing. Deliberately
+# includes long-term laggards (INTC, PFE, VZ, T, CVS, F, GM, MMM, BA, GE...) so
+# the short leg of the long-short probe has genuine losers — a stronger test of
+# selection skill and a partial dilution of survivorship bias (still current
+# constituents; true point-in-time membership remains the gold standard).
+BROAD_UNIVERSE: List[str] = [
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO", "ORCL",
+    "CSCO", "INTC", "IBM", "ADBE", "CRM", "QCOM", "TXN", "AMD", "NFLX", "DIS",
+    "CMCSA", "VZ", "T", "JPM", "BAC", "WFC", "GS", "V", "MA", "AXP", "UNH",
+    "JNJ", "PFE", "MRK", "ABBV", "LLY", "BMY", "CVS", "WMT", "HD", "PG", "KO",
+    "PEP", "COST", "NKE", "MCD", "XOM", "CVX", "CAT", "BA", "GE", "MMM", "HON",
+    "F", "GM",
+]
+
 
 @dataclass
 class DataConfig:
@@ -89,7 +103,9 @@ class BacktestConfig:
     dca_mode: str = "dca"             # "none" | "dca" | "variable"
     vol_target_annual: float = 0.15   # annualised vol target (None disables)
     weighting: str = "inverse_vol"    # "equal" | "inverse_vol" | "risk_parity"
-    max_weight: float = 0.20          # position cap
+    max_weight: float = 0.08          # single-position cap (Phase 1: 5-8% for stocks)
+    use_kelly: bool = True            # Phase 1: fractional-Kelly risk budget
+    kelly_fraction_cap: float = 0.25  # deploy at most 25% of full Kelly
 
 
 @dataclass

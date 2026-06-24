@@ -301,6 +301,9 @@ def parse_args():
     p.add_argument("--no-stack", action="store_true", help="skip the stacking ensemble (faster)")
     p.add_argument("--models", default=None,
                    help="comma-separated model subset, e.g. 'elasticnet,lgbm'")
+    p.add_argument("--broad", action="store_true",
+                   help="use the broader ~50-name sector-diversified universe (robustness test)")
+    p.add_argument("--no-kelly", action="store_true", help="disable the fractional-Kelly risk budget")
     return p.parse_args()
 
 
@@ -314,6 +317,11 @@ def main():
         cfg.validation.train_min_days = 252
         cfg.models.candidates = ["ridge", "lgbm"]
         cfg.name = "v12_quick"
+    if args.broad:
+        from v12.config import BROAD_UNIVERSE
+        cfg.data.universe = list(BROAD_UNIVERSE)
+    if args.no_kelly:
+        cfg.backtest.use_kelly = False
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

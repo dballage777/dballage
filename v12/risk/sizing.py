@@ -28,6 +28,23 @@ def kelly_fraction(rets: pd.Series, cap: float = 0.5) -> float:
     return float(np.clip(mu / var, 0, cap))
 
 
+def kelly_exposure(rets: pd.Series, fraction: float = 0.25,
+                   max_exposure: float = 1.0) -> float:
+    """Portfolio risk-budget multiplier from *fractional* Kelly.
+
+    full Kelly f* = mean/variance of recent returns; we deploy only
+    ``fraction`` of it (default 25%, the directive's safety cap) and never lever
+    past ``max_exposure``. In drawdowns (negative mean) this collapses toward 0,
+    acting as a capital-preservation throttle.
+    """
+    if len(rets) < 5:
+        return max_exposure
+    mu, var = rets.mean(), rets.var()
+    if var <= 0 or np.isnan(var):
+        return max_exposure
+    return float(np.clip(fraction * (mu / var), 0.0, max_exposure))
+
+
 def cvar(rets: pd.Series, alpha: float = 0.05) -> float:
     """Conditional Value-at-Risk (expected shortfall) at level ``alpha``."""
     if len(rets) == 0:
