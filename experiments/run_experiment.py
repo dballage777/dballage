@@ -304,6 +304,8 @@ def parse_args():
     p.add_argument("--broad", action="store_true",
                    help="use the broader ~50-name sector-diversified universe (robustness test)")
     p.add_argument("--no-kelly", action="store_true", help="disable the fractional-Kelly risk budget")
+    p.add_argument("--horizon", type=int, default=None,
+                   help="forward-return target horizon in trading days (default 5)")
     return p.parse_args()
 
 
@@ -320,6 +322,11 @@ def main():
     if args.broad:
         from v12.config import BROAD_UNIVERSE
         cfg.data.universe = list(BROAD_UNIVERSE)
+    if args.horizon:
+        cfg.features.target_horizon = args.horizon
+        # rebalance no more often than the signal horizon to avoid churn
+        cfg.backtest.rebalance_days = max(cfg.backtest.rebalance_days, args.horizon)
+        cfg.__post_init__()  # re-assert embargo >= horizon (leakage guard)
     if args.no_kelly:
         cfg.backtest.use_kelly = False
     if args.models:
