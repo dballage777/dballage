@@ -92,6 +92,14 @@ class FeaturePipeline:
         # --- target: forward h-day return, cross-sectionally de-meaned ---
         h = self.cfg.target_horizon
         fwd = data.close[names].shift(-h) / data.close[names] - 1.0
+        # Point-in-time universe masking (survivorship-bias control): names that
+        # were not members on a given date contribute no label and are dropped.
+        from ..data.universe import membership_mask
+        mask = membership_mask(dcfg, data.close.index, names)
+        if mask is not None:
+            mask = mask.reindex(index=data.close.index, columns=names).fillna(False)
+            fwd = fwd.where(mask)
+            log.info("Applied point-in-time membership mask (survivorship-safe).")
         target = fwd.sub(fwd.mean(axis=1), axis=0)  # market-neutral label
 
         # --- assemble long panel ---

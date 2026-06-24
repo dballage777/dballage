@@ -94,6 +94,11 @@ def run(config: ExperimentConfig) -> dict:
     os.makedirs(config.output_dir, exist_ok=True)
     log.info("=== V12 experiment '%s' ===", config.name)
 
+    # 0. Universe + survivorship-bias status
+    from v12.data.universe import resolve_universe
+    universe, universe_meta = resolve_universe(config.data)
+    config.data.universe = universe
+
     # 1. Data
     data = load_prices(config.data)
     log.info("Loaded %d tickers x %d days (source=%s)",
@@ -165,8 +170,11 @@ def run(config: ExperimentConfig) -> dict:
     failure = _failure_analysis(strat_perf, spy_perf, ic_full, mc, beat)
     nxt = _next_experiment(results, ic_full, beat)
 
+    bias_note = ("✅ " if universe_meta["survivorship_safe"] else "⚠️ ") + universe_meta["note"]
     ctx = {
         "data_source": data.source,
+        "universe_meta": universe_meta,
+        "bias_note": bias_note,
         "changes": _changes_block(config, best),
         "leakage_note": (f"Purged walk-forward with embargo={config.validation.embargo_days}d "
                          f">= horizon={config.features.target_horizon}d. "
@@ -196,7 +204,8 @@ def run(config: ExperimentConfig) -> dict:
         json.dump({"best_model": best, "strategy": strat_perf, "spy": spy_perf,
                    "ic": ic_full, "monte_carlo": mc, "stress": stress,
                    "strategy_final": ctx["strategy_final"], "spy_final": ctx["spy_final"],
-                   "data_source": data.source, "model_ic": {k: v["mean_ic"] for k, v in results.items()}},
+                   "data_source": data.source, "survivorship_safe": universe_meta["survivorship_safe"],
+                   "model_ic": {k: v["mean_ic"] for k, v in results.items()}},
                   f, indent=2, default=float)
     bt.strategy_equity.to_frame("strategy").assign(spy=bt.spy_equity).to_csv(
         os.path.join(config.output_dir, f"{config.name}_equity.csv"))

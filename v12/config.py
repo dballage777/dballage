@@ -31,6 +31,9 @@ class DataConfig:
     start: str = "2015-01-01"
     end: str = "2025-01-01"
     cache_dir: str = "data_cache"
+    # "static" (current constituents — survivorship biased) or a path to a
+    # point-in-time membership CSV (columns: ticker,start,end). See data/universe.py.
+    universe_source: str = "static"
     # When True, falls back to a synthetic generator if a live download fails
     # (e.g. restricted network). Synthetic data is for *pipeline validation only*.
     allow_synthetic: bool = True

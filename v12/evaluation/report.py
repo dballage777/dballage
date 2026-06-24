@@ -46,6 +46,10 @@ def build_report(config, ctx: Dict) -> str:
     lines.append("\n## 2. Leakage controls")
     lines.append(ctx.get("leakage_note", "All structural leakage assertions passed."))
 
+    # 2b. Survivorship bias
+    lines.append("\n## 2b. Survivorship bias")
+    lines.append(ctx.get("bias_note", "_n/a_"))
+
     # 3. Signal quality
     lines.append("\n## 3. Signal quality (out-of-sample)")
     lines.append(_table(ctx["ic"]))

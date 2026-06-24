@@ -1,0 +1,9 @@
+ticker,start,end
+# Point-in-time membership template (survivorship-bias control).
+# One row per membership window. Blank 'end' = still a member.
+# Point DataConfig.universe_source at this file to activate PIT masking.
+# Example (illustrative dates — replace with your index-constituent history):
+AAPL,2015-01-01,
+MSFT,2015-01-01,
+GE,2015-01-01,2018-06-26
+WCG,2015-01-01,2020-01-23
