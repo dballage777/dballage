@@ -76,6 +76,8 @@ class FeatureConfig:
     # Sector-neutralize: rank signals and de-mean the target WITHIN sector,
     # removing sector bets (V13 enhancement #1).
     sector_neutral: bool = False
+    # Add point-in-time insider Form 4 features (cluster buying) (V13 #2).
+    use_insider: bool = False
 
 
 @dataclass

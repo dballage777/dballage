@@ -116,8 +116,18 @@ def run(config: ExperimentConfig) -> dict:
         if fundamentals is None:
             log.warning("Fundamentals requested but unavailable — running technicals only.")
 
+    # 1c. Point-in-time insider Form 4 (optional, SEC EDGAR)
+    insider = None
+    if getattr(config.features, "use_insider", False):
+        from v12.data.insider import load_insider
+        insider = load_insider(config.data.universe, config.data.cache_dir,
+                               config.data.sec_user_agent or None)
+        if insider is None:
+            log.warning("Insider data requested but unavailable — skipping it.")
+
     # 2. Features
-    panel, feature_cols = build_dataset(data, config.features, config.data, fundamentals)
+    panel, feature_cols = build_dataset(data, config.features, config.data,
+                                        fundamentals, insider)
     if len(panel) < 1000:
         log.warning("Very small panel (%d rows) — results will be noisy.", len(panel))
 
@@ -321,6 +331,8 @@ def parse_args():
                    help="add point-in-time SEC EDGAR fundamentals (value/quality/growth)")
     p.add_argument("--sector-neutral", action="store_true",
                    help="sector-neutralize ranks and target (V13 enhancement #1)")
+    p.add_argument("--insider", action="store_true",
+                   help="add point-in-time insider Form 4 features (V13 #2; slow first fetch)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -360,6 +372,8 @@ def main():
         cfg.features.use_fundamentals = True
     if args.sector_neutral:
         cfg.features.sector_neutral = True
+    if args.insider:
+        cfg.features.use_insider = True
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

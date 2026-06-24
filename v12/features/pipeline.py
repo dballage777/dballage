@@ -57,7 +57,7 @@ class FeaturePipeline:
         f["rsi"] = T.rsi(c)
         return pd.DataFrame(f)
 
-    def build(self, data: PriceData, fundamentals=None):
+    def build(self, data: PriceData, fundamentals=None, insider=None):
         cfg, dcfg = self.cfg, self.data_cfg
         names = [t for t in dcfg.universe if t in data.close.columns]
         log.info("Building features for %d names...", len(names))
@@ -88,6 +88,20 @@ class FeaturePipeline:
                     per_name[t][f"f_{col}"] = ranked[t]
             log.info("Added %d PIT fundamental features (%d/%d names have EDGAR data).",
                      len(FUNDAMENTAL_COLS), n_have, len(names))
+
+        # --- point-in-time insider Form 4 features (V13 #2), cross-sectionally ranked ---
+        if getattr(self.cfg, "use_insider", False) and insider is not None:
+            from .insider import build_insider_features, INSIDER_COLS
+            ins = {t: build_insider_features(insider.data.get(t), data.close.index)
+                   for t in names}
+            n_have = sum(insider.data.get(t) is not None for t in names)
+            for col in INSIDER_COLS:
+                wide = pd.DataFrame({t: ins[t][col] for t in names})
+                ranked = cross_sectional_rank(wide).fillna(0.0)
+                for t in names:
+                    per_name[t][f"i_{col}"] = ranked[t]
+            log.info("Added %d PIT insider features (%d/%d names have Form 4 data).",
+                     len(INSIDER_COLS), n_have, len(names))
 
         # --- market breadth (broadcast to all names) ---
         breadth = compute_breadth(data.close[names], self.cfg.breadth_mas)
@@ -162,5 +176,6 @@ class FeaturePipeline:
         return panel, feature_cols
 
 
-def build_dataset(data: PriceData, feature_cfg, data_cfg, fundamentals=None):
-    return FeaturePipeline(feature_cfg, data_cfg).build(data, fundamentals=fundamentals)
+def build_dataset(data: PriceData, feature_cfg, data_cfg, fundamentals=None, insider=None):
+    return FeaturePipeline(feature_cfg, data_cfg).build(
+        data, fundamentals=fundamentals, insider=insider)
