@@ -107,8 +107,17 @@ def run(config: ExperimentConfig) -> dict:
     log.info("Loaded %d tickers x %d days (source=%s)",
              len(data.tickers), len(data.dates), data.source)
 
+    # 1b. Point-in-time fundamentals (optional, SEC EDGAR)
+    fundamentals = None
+    if config.features.use_fundamentals:
+        from v12.data.fundamentals import load_fundamentals
+        fundamentals = load_fundamentals(config.data.universe, config.data.cache_dir,
+                                         config.data.sec_user_agent or None)
+        if fundamentals is None:
+            log.warning("Fundamentals requested but unavailable — running technicals only.")
+
     # 2. Features
-    panel, feature_cols = build_dataset(data, config.features, config.data)
+    panel, feature_cols = build_dataset(data, config.features, config.data, fundamentals)
     if len(panel) < 1000:
         log.warning("Very small panel (%d rows) — results will be noisy.", len(panel))
 
@@ -308,6 +317,8 @@ def parse_args():
     p.add_argument("--broad", action="store_true",
                    help="use the broader ~50-name sector-diversified universe (robustness test)")
     p.add_argument("--no-kelly", action="store_true", help="disable the fractional-Kelly risk budget")
+    p.add_argument("--fundamentals", action="store_true",
+                   help="add point-in-time SEC EDGAR fundamentals (value/quality/growth)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -343,6 +354,8 @@ def main():
         cfg.__post_init__()  # re-assert embargo >= horizon (leakage guard)
     if args.no_kelly:
         cfg.backtest.use_kelly = False
+    if args.fundamentals:
+        cfg.features.use_fundamentals = True
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

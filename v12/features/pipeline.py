@@ -57,7 +57,7 @@ class FeaturePipeline:
         f["rsi"] = T.rsi(c)
         return pd.DataFrame(f)
 
-    def build(self, data: PriceData):
+    def build(self, data: PriceData, fundamentals=None):
         cfg, dcfg = self.cfg, self.data_cfg
         names = [t for t in dcfg.universe if t in data.close.columns]
         log.info("Building features for %d names...", len(names))
@@ -73,6 +73,21 @@ class FeaturePipeline:
                     df[f"rs_{ref}"] = R.relative_strength(c, data.close[ref], 60)
             df[f"beta_{dcfg.benchmark}"] = R.rolling_beta(c, data.close[dcfg.benchmark], 60)
             per_name[t] = df
+
+        # --- point-in-time fundamentals (value/quality/growth), cross-sectionally ranked ---
+        if getattr(self.cfg, "use_fundamentals", False) and fundamentals is not None:
+            from .fundamental import build_fundamental_features, FUNDAMENTAL_COLS
+            fund = {t: build_fundamental_features(data.close[t],
+                                                  fundamentals.data.get(t), data.close.index)
+                    for t in names}
+            n_have = sum(fundamentals.data.get(t) is not None for t in names)
+            for col in FUNDAMENTAL_COLS:
+                wide = pd.DataFrame({t: fund[t][col] for t in names})
+                ranked = cross_sectional_rank(wide).fillna(0.0)  # missing -> neutral
+                for t in names:
+                    per_name[t][f"f_{col}"] = ranked[t]
+            log.info("Added %d PIT fundamental features (%d/%d names have EDGAR data).",
+                     len(FUNDAMENTAL_COLS), n_have, len(names))
 
         # --- market breadth (broadcast to all names) ---
         breadth = compute_breadth(data.close[names], self.cfg.breadth_mas)
@@ -132,5 +147,5 @@ class FeaturePipeline:
         return panel, feature_cols
 
 
-def build_dataset(data: PriceData, feature_cfg, data_cfg):
-    return FeaturePipeline(feature_cfg, data_cfg).build(data)
+def build_dataset(data: PriceData, feature_cfg, data_cfg, fundamentals=None):
+    return FeaturePipeline(feature_cfg, data_cfg).build(data, fundamentals=fundamentals)

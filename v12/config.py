@@ -56,6 +56,8 @@ class DataConfig:
     # 0.0 = pure noise (no learnable edge); 1.0 = realistic-faint (default).
     # Used by the framework-validation harness to test signal recovery.
     signal_strength: float = 1.0
+    # SEC EDGAR requires a descriptive User-Agent ("name email"); else env SEC_USER_AGENT.
+    sec_user_agent: str = ""
 
 
 @dataclass
@@ -68,6 +70,9 @@ class FeatureConfig:
     # must use *only* information up to and including t.
     target_horizon: int = 5
     winsorize_pct: float = 0.01  # cross-sectional winsorisation on features
+    # Add point-in-time SEC EDGAR fundamentals (value/quality/growth) as
+    # cross-sectionally ranked features. Off by default (needs network).
+    use_fundamentals: bool = False
 
 
 @dataclass
