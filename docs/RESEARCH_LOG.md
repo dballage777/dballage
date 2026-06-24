@@ -66,6 +66,40 @@ signal, does not invent fake signal, and aborts on leakage. Guarded in CI and by
 > the test genuinely exercises the learning path. This is logged as a methodology
 > correction, not a silent fix.
 
+## V12 real-data findings (yfinance)
+
+**Run 1 — 25 mega-caps, 5-day horizon:** IC 0.058, long-short Sharpe 1.29. Looked
+great — but on a curated winner universe, so suspect.
+
+**Run 2 — broad 54-name universe (incl. laggards), 5-day horizon:** IC collapsed
+to 0.008, long-short Sharpe 0.31. **The mega-cap edge did not generalize** — it
+was largely universe-selection bias. Gate failed → did not proceed.
+
+**Run 3 — horizon sweep on the broad universe** (hypothesis: the only non-zero
+features are slow — mom_120, realized_vol_60, trend_r2 — but the target was 5-day,
+a horizon mismatch):
+
+| horizon | IC | long-short Sharpe (after costs) |
+|---|---|---|
+| 5d | 0.008 | 0.31 |
+| 20d | 0.057 | 0.85 |
+| 60d | **0.134** | **1.37** |
+
+Clean monotonic dose-response on the *honest* (survivorship-diluted) universe —
+the first signal that survives the broad-universe + long-short test.
+
+**Validated recipe:** broad universe, **60-day** horizon, **linear models only**
+(elasticnet/ridge — trees went *negative*: lgbm −0.074, xgb −0.056). The signal
+is a slow, linear cross-sectional **low-volatility + momentum** factor.
+
+**Caveats (do not over-claim again):**
+- Reported **ICIR ≈ 11.5 is inflated** — 60-day labels overlap, so per-date ICs
+  are autocorrelated and the ×√252 annualization is invalid. Real annualized
+  ICIR ≈ **1.5**. *(Metric needs a horizon-aware fix.)*
+- It is **market-neutral**: it will not out-*return* a leveraged bull-market SPY
+  and must not be judged on §4. Its metric is the long-short Sharpe (~1.37).
+- Still a current-constituents universe; point-in-time membership still owed.
+
 **Next experiments** (auto-proposed by the framework)
 1. Feature ablation — keep only top-importance features and re-test.
 2. Add fundamentals / alt-data to raise the technical-only IC ceiling.
