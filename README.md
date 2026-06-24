@@ -76,6 +76,8 @@ Outputs land in `results/`: a markdown report, a metrics JSON, and an equity CSV
 
 ### Google Colab / GitHub Codespaces
 
+**👉 Step-by-step guide: [`docs/RUN_IT.md`](docs/RUN_IT.md)** (which environment, what to click, what to check).
+
 ```python
 !git clone <this-repo> && cd dballage
 !pip install -r requirements.txt
