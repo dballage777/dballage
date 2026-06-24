@@ -125,7 +125,10 @@ def run(config: ExperimentConfig) -> dict:
     if not folds:
         raise RuntimeError("No walk-forward folds — widen date range or lower train_min_days.")
     assert_no_leakage(panel, feature_cols, iter(folds), config.features.target_horizon)
-    log.info("Leakage checks passed. %d folds.", len(folds))
+    oos_start = folds[0][2]["test_dates"][0]
+    oos_end = folds[-1][2]["test_dates"][1]
+    oos_span = f"{oos_start:%Y-%m-%d} → {oos_end:%Y-%m-%d} ({len(folds)} folds)"
+    log.info("Leakage checks passed. %d folds. OOS span: %s", len(folds), oos_span)
 
     # 4. Model comparison (each candidate + stacking)
     candidates = list(config.models.candidates)
@@ -196,6 +199,7 @@ def run(config: ExperimentConfig) -> dict:
 
     ctx = {
         "data_source": data.source,
+        "oos_span": oos_span,
         "universe_meta": universe_meta,
         "bias_note": bias_note,
         "changes": _changes_block(config, best),
@@ -306,6 +310,10 @@ def parse_args():
     p.add_argument("--no-kelly", action="store_true", help="disable the fractional-Kelly risk budget")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
+    p.add_argument("--folds", type=int, default=None,
+                   help="number of walk-forward OOS folds (more = longer OOS history)")
+    p.add_argument("--start", default=None, help="data start date YYYY-MM-DD")
+    p.add_argument("--end", default=None, help="data end date YYYY-MM-DD")
     return p.parse_args()
 
 
@@ -319,6 +327,12 @@ def main():
         cfg.validation.train_min_days = 252
         cfg.models.candidates = ["ridge", "lgbm"]
         cfg.name = "v12_quick"
+    if args.start:
+        cfg.data.start = args.start
+    if args.end:
+        cfg.data.end = args.end
+    if args.folds:
+        cfg.validation.n_splits = args.folds
     if args.broad:
         from v12.config import BROAD_UNIVERSE
         cfg.data.universe = list(BROAD_UNIVERSE)

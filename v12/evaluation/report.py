@@ -33,6 +33,8 @@ def build_report(config, ctx: Dict) -> str:
     lines.append(f"# V12 Experiment Report — `{config.name}`")
     lines.append(f"_Generated {datetime.utcnow():%Y-%m-%d %H:%M UTC} · data source: "
                  f"**{ctx.get('data_source','?')}**_")
+    if ctx.get("oos_span"):
+        lines.append(f"_Out-of-sample backtest span: **{ctx['oos_span']}**_")
     if ctx.get("data_source") == "synthetic":
         lines.append("\n> ⚠️ **Synthetic data** (network-restricted environment). "
                      "These numbers validate the *pipeline*, not real alpha. "
