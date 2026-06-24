@@ -108,35 +108,45 @@ def load_insider(tickers: List[str], cache_dir: str = "data_cache",
         log.warning("No ticker->CIK map (network?). Skipping insider data.")
         return None
 
+    # Incremental, resumable cache: progress is saved per ticker so a long fetch
+    # (or a Ctrl+C) is never wasted — re-running picks up where it left off.
+    progress = os.path.join(cache_dir, "insider_progress.json")
+    blob: Dict[str, str] = json.load(open(progress)) if os.path.exists(progress) else {}
     data: Dict[str, pd.DataFrame] = {}
-    for t in tickers:
+    for t, v in blob.items():
+        df = pd.read_json(v, orient="split")
+        df["filed"] = pd.to_datetime(df["filed"])
+        data[t] = df.set_index("filed").sort_index()
+
+    todo = [t for t in tickers if t not in blob]
+    log.info("Insider fetch: %d cached, %d to fetch (resumable).", len(blob), len(todo))
+    for t in todo:
         cik = cik_map.get(t.upper())
-        if cik is None:
-            continue
-        refs = _form4_refs(cik, ua)
         rows = []
-        for filed, acc, doc in refs:
-            acc_nodash = acc.replace("-", "")
-            url = _ARCHIVE.format(cik=cik, acc=acc_nodash, doc=doc)
-            xml = _http_text(url, ua)
-            if not xml:
-                continue
-            for tx in parse_form4_xml(xml):
-                rows.append((filed, tx["signed_value"], tx["is_purchase"]))
-            time.sleep(0.12)  # be polite to SEC
+        if cik is not None:
+            for filed, acc, doc in _form4_refs(cik, ua):
+                url = _ARCHIVE.format(cik=cik, acc=acc.replace("-", ""), doc=doc)
+                xml = _http_text(url, ua)
+                if xml:
+                    for tx in parse_form4_xml(xml):
+                        rows.append((filed, tx["signed_value"], tx["is_purchase"]))
+                time.sleep(0.12)  # be polite to SEC
+        df = pd.DataFrame(rows, columns=["filed", "signed_value", "is_purchase"])
         if rows:
-            df = pd.DataFrame(rows, columns=["filed", "signed_value", "is_purchase"])
             df["filed"] = pd.to_datetime(df["filed"])
             data[t] = df.set_index("filed").sort_index()
-        log.info("Insider %s: %d open-market transactions", t, len(rows))
+        # persist progress after each ticker (even empties, so we don't refetch)
+        blob[t] = df.to_json(orient="split", date_format="iso")
+        json.dump(blob, open(progress, "w"))
+        log.info("Insider %s: %d open-market transactions (%d/%d done)",
+                 t, len(rows), len(blob), len(tickers))
 
     if not data:
         log.warning("Insider data unavailable; pipeline runs without it.")
         return None
     try:
-        blob = {t: df.reset_index().to_json(orient="split", date_format="iso")
-                for t, df in data.items()}
-        json.dump(blob, open(cache, "w"))
+        json.dump({t: df.reset_index().to_json(orient="split", date_format="iso")
+                   for t, df in data.items()}, open(cache, "w"))
         log.info("Cached insider data for %d tickers -> %s", len(data), cache)
     except Exception as e:
         log.warning("Could not cache insider data (%s)", e)
