@@ -97,8 +97,33 @@ is a slow, linear cross-sectional **low-volatility + momentum** factor.
   are autocorrelated and the ×√252 annualization is invalid. Real annualized
   ICIR ≈ **1.5**. *(Metric needs a horizon-aware fix.)*
 - It is **market-neutral**: it will not out-*return* a leveraged bull-market SPY
-  and must not be judged on §4. Its metric is the long-short Sharpe (~1.37).
+  and must not be judged on §4. Its metric is the long-short Sharpe.
 - Still a current-constituents universe; point-in-time membership still owed.
+
+**Run 4 — broad universe, 60d, full 2018–2026 OOS (32 folds, ~8y):** the signal
+**faded**. IC 0.134 → **0.048**; long-short Sharpe 1.37 → **0.51**; strategy ties
+SPY (0.73 vs 0.74). The strong 60d result was itself a recent-period (2023–24)
+artifact.
+
+### Verdict: technical-only edge is marginal, NOT deployable
+
+Across the full honesty gradient:
+
+| test (more honest →) | IC | long-short Sharpe |
+|---|---|---|
+| 25 mega-caps, 1.5y OOS | 0.058 | 1.29 |
+| broad 54, 1.5y OOS | 0.134 | 1.37 |
+| broad 54, 8y OOS | 0.048 | 0.51 |
+
+Every honesty improvement shrank the edge toward noise. Final honest estimate: a
+~0.4–0.5 Sharpe market-neutral low-vol/momentum factor on a still-biased
+universe — real but marginal, and not SPY-beating. **Consistent with all of
+V1–V11.** Conclusion: **daily technical/price features on liquid large-caps do
+not contain a robust, deployable edge.** Per the roadmap gate, we do NOT proceed
+to risk/regime/crypto/execution on this. The credible paths are (a) orthogonal
+data (fundamentals/alt-data), (b) a structurally different/inefficient universe,
+or (c) accept the negative result. This is a *real, valuable negative finding* —
+the framework did its job.
 
 **Next experiments** (auto-proposed by the framework)
 1. Feature ablation — keep only top-importance features and re-test.
