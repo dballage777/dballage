@@ -1,0 +1,27 @@
+# ---- Core (required) ----
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+scikit-learn>=1.4
+pyarrow>=14.0            # parquet cache
+
+# ---- Data / execution ----
+yfinance>=0.2.40        # market data (Codespaces/Colab/DO)
+alpaca-py>=0.21         # broker / execution
+
+# ---- Models (optional but recommended) ----
+xgboost>=2.0
+lightgbm>=4.1
+catboost>=1.2
+
+# ---- Backtesting ----
+vectorbt>=0.26          # vectorised backtests (engine here is dependency-free)
+quantstats>=0.0.62      # tear sheets
+
+# ---- Agents / automation ----
+langgraph>=0.2
+langchain-core>=0.3
+
+# ---- Dev ----
+pytest>=8.0
+matplotlib>=3.8

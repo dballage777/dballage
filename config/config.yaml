@@ -1,0 +1,45 @@
+# V12 reference configuration (mirrors v12/config.py dataclass defaults).
+# The Python dataclasses are the source of truth; this file documents the knobs
+# and can be loaded by your own thin loader if you prefer YAML-driven runs.
+
+name: v12_baseline
+
+data:
+  start: "2015-01-01"
+  end: "2025-01-01"
+  benchmark: SPY
+  rs_refs: [SPY, QQQ, XLK, XLF, XLY, XLI]
+  allow_synthetic: true        # fall back to synthetic if live data blocked
+  synthetic_seed: 7
+
+features:
+  momentum_windows: [5, 10, 20, 40, 60, 120]
+  vol_windows: [10, 20, 60]
+  breadth_mas: [20, 50, 200]
+  target_horizon: 5            # forward-return label horizon (days)
+  winsorize_pct: 0.01
+
+models:
+  candidates: [ridge, elasticnet, rf, lgbm, xgb]
+  use_stacking: true
+  random_state: 42
+
+validation:
+  n_splits: 6
+  train_min_days: 504          # ~2y minimum train
+  test_days: 63                # ~1 quarter OOS per fold
+  embargo_days: 5              # auto-raised to >= target_horizon
+  purge: true
+
+backtest:
+  top_quantile: 0.30
+  rebalance_days: 5
+  commission_bps: 1.0
+  slippage_bps: 5.0
+  initial_capital: 500.0
+  dca_amount: 100.0
+  dca_interval_days: 10        # ~ every 2 weeks
+  dca_mode: dca                # none | dca | variable
+  vol_target_annual: 0.15
+  weighting: inverse_vol       # equal | inverse_vol | risk_parity
+  max_weight: 0.20
