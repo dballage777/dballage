@@ -47,6 +47,8 @@ def main():
     p.add_argument("--end", default=None)
     p.add_argument("--folds", type=int, default=None)
     p.add_argument("--model", default="ridge")  # ridge: uses all features -> clean ablation
+    p.add_argument("--families", default=None, help="restrict to families, e.g. 'volatility,cross_sectional'")
+    p.add_argument("--prune-corr", type=float, default=None, help="drop features |corr| above this")
     p.add_argument("--name", default="factor_scorecard")
     args = p.parse_args()
 
@@ -79,6 +81,13 @@ def main():
         insider = load_insider(cfg.data.universe, cfg.data.cache_dir, cfg.data.sec_user_agent or None,
                                start_year=int(cfg.data.start[:4]), end_year=int(cfg.data.end[:4]))
     panel, feature_cols = build_dataset(data, cfg.features, cfg.data, fundamentals, insider)
+    if args.families or args.prune_corr:
+        from v12.evaluation.factor_analytics import select_features
+        fams = [f.strip() for f in args.families.split(",")] if args.families else None
+        feature_cols = select_features(panel, feature_cols, fams, args.prune_corr)
+        panel = panel[feature_cols + ["target"]]
+        log.info("Feature selection -> %d features (families=%s, prune=%s).",
+                 len(feature_cols), fams, args.prune_corr)
 
     wf = PurgedWalkForward(cfg.validation.n_splits, cfg.validation.train_min_days,
                            cfg.validation.test_days, cfg.validation.embargo_days,

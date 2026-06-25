@@ -8,7 +8,27 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from v12.evaluation.factor_analytics import (factor_families, ic_significance,
-                                             redundancy, ic_by_year)
+                                             redundancy, ic_by_year, select_features)
+
+
+def test_select_features_keeps_families_and_prunes_redundancy():
+    idx = pd.MultiIndex.from_product([pd.bdate_range("2021-01-01", periods=40), ["A", "B"]],
+                                     names=["date", "ticker"])
+    rng = np.random.RandomState(0)
+    x = rng.normal(size=len(idx))
+    panel = pd.DataFrame({
+        "realized_vol_20": x,
+        "atr_pct": x + rng.normal(0, 0.001, len(idx)),  # ~identical to realized_vol_20
+        "csrank_vol": rng.normal(size=len(idx)),
+        "mom_5": rng.normal(size=len(idx)),             # different family -> dropped
+    }, index=idx)
+    cols = ["realized_vol_20", "atr_pct", "csrank_vol", "mom_5"]
+    # keep only volatility + cross_sectional
+    kept = select_features(panel, cols, keep_families=["volatility", "cross_sectional"])
+    assert "mom_5" not in kept and "csrank_vol" in kept
+    # prune the near-duplicate volatility feature
+    kept2 = select_features(panel, cols, keep_families=["volatility"], prune_corr=0.95)
+    assert len(kept2) == 1  # one of the two collinear vols dropped
 
 
 def test_factor_families_grouping():

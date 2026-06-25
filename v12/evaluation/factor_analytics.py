@@ -46,6 +46,31 @@ def factor_families(feature_cols: List[str]) -> Dict[str, List[str]]:
     return {k: v for k, v in fams.items() if v}
 
 
+def select_features(panel, feature_cols: List[str], keep_families=None,
+                    prune_corr: float = None) -> List[str]:
+    """Restrict to chosen factor families and/or greedily drop redundant features.
+
+    Evidence-driven pruning: the ablation showed only volatility + cross_sectional
+    add marginal alpha, and 73 feature pairs are |corr|>0.7 — a smaller, lower-
+    redundancy set should generalize better.
+    """
+    cols = list(feature_cols)
+    if keep_families:
+        fams = factor_families(feature_cols)
+        keep = set()
+        for f in keep_families:
+            keep |= set(fams.get(f, []))
+        cols = [c for c in feature_cols if c in keep]
+    if prune_corr and len(cols) > 1:
+        corr = panel[cols].corr().abs()
+        kept: List[str] = []
+        for c in cols:
+            if all(corr.loc[c, k] <= prune_corr for k in kept):
+                kept.append(c)
+        cols = kept
+    return cols
+
+
 def ablation(panel, feature_cols, folds, model_name, cfg_models) -> Dict:
     """Full IC + per-family standalone and leave-one-out marginal IC."""
     from experiments.run_experiment import _walk_forward_predict

@@ -130,6 +130,14 @@ def run(config: ExperimentConfig) -> dict:
     # 2. Features
     panel, feature_cols = build_dataset(data, config.features, config.data,
                                         fundamentals, insider)
+    keep_fams = getattr(config, "_keep_families", None)
+    prune = getattr(config, "_prune_corr", None)
+    if keep_fams or prune:
+        from v12.evaluation.factor_analytics import select_features
+        feature_cols = select_features(panel, feature_cols, keep_fams, prune)
+        panel = panel[feature_cols + ["target"]]
+        log.info("Feature selection -> %d features (families=%s, prune_corr=%s).",
+                 len(feature_cols), keep_fams, prune)
     if len(panel) < 1000:
         log.warning("Very small panel (%d rows) — results will be noisy.", len(panel))
 
@@ -335,6 +343,10 @@ def parse_args():
                    help="sector-neutralize ranks and target (V13 enhancement #1)")
     p.add_argument("--insider", action="store_true",
                    help="add point-in-time insider Form 4 features (V13 #2; slow first fetch)")
+    p.add_argument("--families", default=None,
+                   help="restrict to factor families, e.g. 'volatility,cross_sectional'")
+    p.add_argument("--prune-corr", type=float, default=None,
+                   help="greedily drop features with |corr| above this (e.g. 0.9)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -376,6 +388,8 @@ def main():
         cfg.features.sector_neutral = True
     if args.insider:
         cfg.features.use_insider = True
+    cfg._keep_families = [f.strip() for f in args.families.split(",")] if args.families else None
+    cfg._prune_corr = args.prune_corr
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:
