@@ -54,6 +54,23 @@ implement every **feasible, non-counterproductive** attribute, and explicitly
   weighted inputs would degrade the validated strategy. They stay in the
   research/shadow track, not the live engine.
 
+## Status update — 6 feasible gaps CLOSED (committed)
+| gap | now |
+|---|---|
+| Correlation-overload check (#11) | ✅ decision_engine halves exposure on concentration |
+| Medium-horizon blend (#12 long+medium) | ✅ strategies/blend.py (short/intraday still ⛔) |
+| Microcap caps (#13) | ✅ portfolio/microcap.py (10%/1% enforced) |
+| Core/Experimental split (#14) | ✅ sleeves bucket + 5% experimental cap |
+| Learning-loop reweight (#15) | ✅ learning/reweight.py (by realized paper Sharpe) |
+| Biweekly hold-until-EV (#16) | ✅ execution/cash_manager.py (90-day idle backstop) |
+
+Infeasible sources now **explicitly declared** (v12/sources): intraday / news /
+options-flow / reddit / narrative raise `NotImplementedError` rather than being
+faked. Proven-harmful EDGAR alt-data marked `shadow_only`.
+
+**Foundation is now honestly complete:** every feasible, non-counterproductive
+GOAL attribute is implemented; everything else is explicitly NOT-AVAILABLE.
+
 ## Recommendation
 Close the **6 feasible gaps** (correlation check, medium-horizon, microcap
 enforcement, core/experimental split, learning-loop reweight, biweekly idle),
