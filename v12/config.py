@@ -133,6 +133,8 @@ class BacktestConfig:
     reenter_drawdown: float = 0.10
     # No-trade band: skip position changes smaller than this (cuts turnover/cost).
     no_trade_band: float = 0.0
+    # Graduated (conviction-scaled) sizing instead of equal top-quantile inclusion.
+    graduated_sizing: bool = False
 
 
 @dataclass

@@ -28,6 +28,25 @@ def kelly_fraction(rets: pd.Series, cap: float = 0.5) -> float:
     return float(np.clip(mu / var, 0, cap))
 
 
+def graduated_size_multiplier(score_0_100: float) -> float:
+    """Conviction-scaled position size (graduated, not binary).
+
+    Implements the mandated graduated execution model:
+      0-40   -> 0.0  (no trade)
+      40-60  -> 0.30 (small)
+      60-80  -> 0.70 (normal)
+      80-100 -> 1.00 (max allowed, still capped by max_weight)
+    ``score`` is a 0-100 conviction proxy (e.g. cross-sectional percentile rank).
+    """
+    if score_0_100 < 40:
+        return 0.0
+    if score_0_100 < 60:
+        return 0.30
+    if score_0_100 < 80:
+        return 0.70
+    return 1.0
+
+
 def kelly_exposure(rets: pd.Series, fraction: float = 0.25,
                    max_exposure: float = 1.0) -> float:
     """Portfolio risk-budget multiplier from *fractional* Kelly.

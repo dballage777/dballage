@@ -129,6 +129,16 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
                     picks = [p for p in picks if p in lookback.columns]
                     if picks:
                         w_new = compute_weights(cfg.weighting, lookback[picks].dropna(), cfg.max_weight)
+                        # graduated (conviction-scaled) sizing: scale each pick by
+                        # its cross-sectional percentile -> small/normal/max, not binary
+                        if getattr(cfg, "graduated_sizing", False):
+                            from ..risk.sizing import graduated_size_multiplier
+                            pct = scores.rank(pct=True) * 100.0
+                            mult = pct.reindex(w_new.index).map(graduated_size_multiplier)
+                            w_new = (w_new * mult)
+                            w_new = w_new[w_new > 0]
+                            if w_new.sum() > 0:
+                                w_new = w_new / w_new.sum()
 
                 if w_new is not None:
                     # ---- exposure overlays ----

@@ -38,6 +38,17 @@ def test_overlay_is_long_biased_full_universe():
     assert abs(held.sum() - 1.0) < 1e-6, "overlay fully invested"
 
 
+def test_graduated_size_multiplier_buckets():
+    from v12.risk.sizing import graduated_size_multiplier as g
+    assert g(10) == 0.0    # no trade
+    assert g(50) == 0.30   # small
+    assert g(70) == 0.70   # normal
+    assert g(95) == 1.0    # max
+    # monotonic non-decreasing with conviction
+    vals = [g(s) for s in range(0, 101, 10)]
+    assert all(b >= a for a, b in zip(vals, vals[1:]))
+
+
 def test_neutral_mode_is_concentrated():
     pred, close, bench = _setup()
     cfg = ExperimentConfig().backtest
