@@ -36,6 +36,14 @@ BROAD_UNIVERSE: List[str] = [
     "F", "GM",
 ]
 
+# Crypto universe (GOAL: 5-12 assets; core BTC/ETH + large-cap alts only).
+# yfinance "-USD" spot tickers. BTC is the regime benchmark for the crypto book.
+CRYPTO_BENCHMARK = "BTC-USD"
+CRYPTO_UNIVERSE: List[str] = [
+    "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "ADA-USD",
+    "AVAX-USD", "DOGE-USD", "LINK-USD", "DOT-USD", "LTC-USD", "MATIC-USD",
+]
+
 
 @dataclass
 class DataConfig:
