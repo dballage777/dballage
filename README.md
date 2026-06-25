@@ -32,6 +32,36 @@ discipline this platform exists to enforce.
 
 ---
 
+## Results (real data, out-of-sample 2018–2026, after costs)
+
+![Strategy vs SPY](docs/assets/backtest_success_chart.png)
+
+The validated strategy is a **regime-gated low-volatility equity strategy**. It
+**beats SPY on a risk-adjusted basis** — but **not** in absolute return:
+
+| Metric | Strategy | SPY | |
+|---|---|---|---|
+| Sharpe | **0.88** | 0.74 | ✅ better-compensated risk |
+| Calmar | **0.57** | 0.39 | ✅ |
+| Max drawdown | **−19%** | −34% | ✅ half the crash |
+| Annual volatility | **12.4%** | 19.3% | ✅ |
+| **CAGR (raw return)** | 10.8% | **13.2%** | ⚠️ **SPY wins — honest caveat** |
+
+Signal quality: out-of-sample rank-IC **0.055**, fold **t-stat 2.04** (>2 =
+statistically significant), across 32 walk-forward folds, leakage-checked, cost-
+and Monte-Carlo-stressed.
+
+> **It is a lower-risk *alternative* to the S&P 500, not a way to beat it in
+> dollars.** That honest "good but modest" is the achievement — the eleven prior
+> versions that looked spectacular were leakage artifacts.
+
+📄 Full write-up: [`docs/BACKTEST_SUMMARY.md`](docs/BACKTEST_SUMMARY.md) (plain-English + technical) ·
+📊 [`docs/backtest_metrics.csv`](docs/backtest_metrics.csv) (Google-Sheets-ready) ·
+📋 design spec: [`docs/SYSTEM_SPEC.md`](docs/SYSTEM_SPEC.md) ·
+🔎 what's built vs not: [`docs/GOAL_IMPLEMENTATION_AUDIT.md`](docs/GOAL_IMPLEMENTATION_AUDIT.md)
+
+---
+
 ## Quickstart
 
 ```bash
