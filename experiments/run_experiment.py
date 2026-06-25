@@ -121,7 +121,9 @@ def run(config: ExperimentConfig) -> dict:
     if getattr(config.features, "use_insider", False):
         from v12.data.insider import load_insider
         insider = load_insider(config.data.universe, config.data.cache_dir,
-                               config.data.sec_user_agent or None)
+                               config.data.sec_user_agent or None,
+                               start_year=int(config.data.start[:4]),
+                               end_year=int(config.data.end[:4]))
         if insider is None:
             log.warning("Insider data requested but unavailable — skipping it.")
 

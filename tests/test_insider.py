@@ -7,8 +7,37 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from v12.data.insider import parse_form4_xml
+import io
+import zipfile
+
+from v12.data.insider import parse_form4_xml, _quarter_rows
 from v12.features.insider import build_insider_features
+
+
+def test_bulk_quarter_parser_filters_universe_and_codes():
+    """_quarter_rows joins SUBMISSION+NONDERIV_TRANS, keeps only our tickers & P/S."""
+    submission = (
+        "ACCESSION_NUMBER\tFILING_DATE\tISSUERTRADINGSYMBOL\n"
+        "0001-AAPL\t15-FEB-2021\tAAPL\n"
+        "0002-XYZ\t16-FEB-2021\tXYZ\n"   # not in our universe -> dropped
+    )
+    nonderiv = (
+        "ACCESSION_NUMBER\tTRANS_CODE\tTRANS_SHARES\tTRANS_PRICEPERSHARE\n"
+        "0001-AAPL\tP\t1000\t50\n"       # purchase, kept
+        "0001-AAPL\tS\t200\t50\n"        # sale, kept
+        "0001-AAPL\tA\t999\t50\n"        # award, dropped
+        "0002-XYZ\tP\t5\t10\n"           # wrong ticker, dropped
+    )
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("SUBMISSION.tsv", submission)
+        z.writestr("NONDERIV_TRANS.tsv", nonderiv)
+    rows = _quarter_rows(buf.getvalue(), {"AAPL"})
+    assert len(rows) == 2  # only AAPL P and S
+    by_purchase = {r[3]: r for r in rows}
+    assert by_purchase[1][2] == 50000   # P signed +
+    assert by_purchase[0][2] == -10000  # S signed -
+    assert all(r[0] == "AAPL" for r in rows)
 
 _FORM4 = """<?xml version="1.0"?>
 <ownershipDocument>

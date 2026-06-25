@@ -1,32 +1,35 @@
-"""Point-in-time insider transactions from SEC EDGAR Form 4 (free, no API key).
+"""Point-in-time insider transactions from SEC EDGAR (free, no API key).
 
 Form 4 reports insider open-market purchases (code ``P``) and sales (``S``). We
-index every transaction by the **filing date** (when it became public), so the
+index every transaction by its **filing date** (when it became public), so the
 backtest only ever sees insider activity after the market did. Cluster *buying*
-in particular is a documented, orthogonal signal (insiders act on information not
-yet in price or financials).
+in particular is a documented, orthogonal signal.
 
-Heavy: a decade of Form 4s is thousands of filings. Results are cached per run.
-Network-restricted sandboxes fail gracefully and the pipeline skips insider data.
+Source: SEC's **bulk quarterly insider-transaction datasets** (one zip per
+quarter with all transactions in TSV tables) — ~48 downloads for a decade, vs
+the ~100k individual-filing fetches the naive approach would need. Each quarter
+is cached so re-runs are instant. Network-restricted sandboxes fail gracefully
+and the pipeline skips insider data.
 """
 from __future__ import annotations
 
+import io
 import json
 import os
-import time
 import xml.etree.ElementTree as ET
+import zipfile
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import pandas as pd
 
 from ..utils import get_logger
-from .fundamentals import _http_get_json, _ticker_cik_map
 
 log = get_logger("insider")
 
-_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
-_ARCHIVE = "https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{doc}"
+# Bulk Form 345 datasets, one zip per quarter (tab-separated tables inside).
+_DATASET_URL = "https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets/{y}q{q}_form345.zip"
 
 
 @dataclass
@@ -36,10 +39,9 @@ class Insider:
 
 
 def parse_form4_xml(xml_text: str) -> List[dict]:
-    """Parse non-derivative open-market transactions from a Form 4 document.
+    """Parse non-derivative open-market transactions from a single Form 4 doc.
 
-    Returns dicts: {code, shares, price, signed_value, is_purchase}. Only codes
-    P (purchase) and S (sale) — the open-market, information-bearing trades.
+    Kept for unit tests / fallback. Returns dicts for codes P and S only.
     """
     out: List[dict] = []
     try:
@@ -65,32 +67,79 @@ def parse_form4_xml(xml_text: str) -> List[dict]:
     return out
 
 
-def _form4_refs(cik: int, ua: str) -> List[tuple]:
-    """Return [(filing_date, accession, primary_document)] for all Form 4s."""
-    sub = _http_get_json(_SUBMISSIONS_URL.format(cik=cik), ua)
-    if not sub:
-        return []
-    refs: List[tuple] = []
+def _download(url: str, ua: str) -> Optional[bytes]:
+    headers = {"User-Agent": ua, "Accept-Encoding": "gzip, deflate"}
+    try:
+        import requests
+        r = requests.get(url, headers=headers, timeout=120)
+        return r.content if r.status_code == 200 else None
+    except Exception:
+        try:
+            import urllib.request
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return resp.read()
+        except Exception:
+            return None
 
-    def _collect(recent):
-        forms = recent.get("form", [])
-        for i, f in enumerate(forms):
-            if f == "4":
-                refs.append((recent["filingDate"][i], recent["accessionNumber"][i],
-                             recent["primaryDocument"][i]))
 
-    _collect(sub.get("filings", {}).get("recent", {}))
-    for extra in sub.get("filings", {}).get("files", []):  # older history shards
-        more = _http_get_json(f"https://data.sec.gov/submissions/{extra['name']}", ua)
-        if more:
-            _collect(more)
-        time.sleep(0.1)
-    return refs
+def _parse_date(s: pd.Series) -> pd.Series:
+    d = pd.to_datetime(s, format="%d-%b-%Y", errors="coerce")  # e.g. 15-FEB-2021
+    if d.isna().mean() > 0.5:
+        d = pd.to_datetime(s, errors="coerce")                 # fallback ISO etc.
+    return d
+
+
+def _quarter_rows(zbytes: bytes, tickers_upper: set) -> List[tuple]:
+    """Return [(ticker, filing_date, signed_value, is_purchase)] for our tickers."""
+    rows: List[tuple] = []
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(zbytes))
+    except Exception:
+        return rows
+
+    def _read(name):
+        for n in zf.namelist():
+            if n.upper().endswith(name):
+                return pd.read_csv(zf.open(n), sep="\t", dtype=str, low_memory=False)
+        return None
+
+    sub = _read("SUBMISSION.TSV")
+    nd = _read("NONDERIV_TRANS.TSV")
+    if sub is None or nd is None:
+        return rows
+    sub.columns = [c.upper() for c in sub.columns]
+    nd.columns = [c.upper() for c in nd.columns]
+    if "ISSUERTRADINGSYMBOL" not in sub or "ACCESSION_NUMBER" not in sub:
+        return rows
+
+    sub["SYM"] = sub["ISSUERTRADINGSYMBOL"].astype(str).str.upper().str.strip()
+    keep = sub[sub["SYM"].isin(tickers_upper)][["ACCESSION_NUMBER", "FILING_DATE", "SYM"]].copy()
+    if keep.empty:
+        return rows
+    keep["FILING_DATE"] = _parse_date(keep["FILING_DATE"])
+
+    nd = nd[nd["TRANS_CODE"].isin(["P", "S"])]
+    merged = nd.merge(keep, on="ACCESSION_NUMBER", how="inner")
+    for _, r in merged.iterrows():
+        try:
+            shares = float(r.get("TRANS_SHARES") or 0)
+            price = float(r.get("TRANS_PRICEPERSHARE") or 0)
+        except (ValueError, TypeError):
+            continue
+        if pd.isna(r["FILING_DATE"]):
+            continue
+        val = shares * price
+        is_p = 1 if r["TRANS_CODE"] == "P" else 0
+        rows.append((r["SYM"], r["FILING_DATE"], val if is_p else -val, is_p))
+    return rows
 
 
 def load_insider(tickers: List[str], cache_dir: str = "data_cache",
-                 user_agent: Optional[str] = None) -> Optional[Insider]:
+                 user_agent: Optional[str] = None,
+                 start_year: int = 2014, end_year: Optional[int] = None) -> Optional[Insider]:
     ua = user_agent or os.environ.get("SEC_USER_AGENT", "v12-research contact@example.com")
+    end_year = end_year or datetime.utcnow().year
     cache = os.path.join(cache_dir, "insider.json")
     if os.path.exists(cache):
         log.info("Loading cached insider data from %s", cache)
@@ -103,67 +152,44 @@ def load_insider(tickers: List[str], cache_dir: str = "data_cache",
 
         return Insider({t: _read(v) for t, v in blob.items()}, "cache")
 
-    cik_map = _ticker_cik_map(cache_dir, ua)
-    if not cik_map:
-        log.warning("No ticker->CIK map (network?). Skipping insider data.")
+    tickers_upper = {t.upper() for t in tickers}
+    qdir = os.path.join(cache_dir, "insider_q")
+    os.makedirs(qdir, exist_ok=True)
+
+    all_rows: List[tuple] = []
+    n_ok = 0
+    quarters = [(y, q) for y in range(start_year, end_year + 1) for q in range(1, 5)]
+    for y, q in quarters:
+        qcache = os.path.join(qdir, f"{y}q{q}.json")
+        if os.path.exists(qcache):  # resume: skip done quarters
+            rows = [tuple(r) for r in json.load(open(qcache))]
+            all_rows.extend(rows); n_ok += 1
+            continue
+        zb = _download(_DATASET_URL.format(y=y, q=q), ua)
+        if zb is None:
+            log.info("Insider %dQ%d: dataset unavailable (skipped).", y, q)
+            continue
+        rows = _quarter_rows(zb, tickers_upper)
+        json.dump([[r[0], r[1].isoformat(), r[2], r[3]] for r in rows], open(qcache, "w"))
+        all_rows.extend([(r[0], r[1], r[2], r[3]) for r in rows])
+        n_ok += 1
+        log.info("Insider %dQ%d: %d open-market transactions for our universe.", y, q, len(rows))
+
+    if n_ok == 0 or not all_rows:
+        log.warning("Insider datasets unavailable; pipeline runs without insider data.")
         return None
 
-    # Incremental, resumable cache: progress is saved per ticker so a long fetch
-    # (or a Ctrl+C) is never wasted — re-running picks up where it left off.
-    progress = os.path.join(cache_dir, "insider_progress.json")
-    blob: Dict[str, str] = json.load(open(progress)) if os.path.exists(progress) else {}
+    df = pd.DataFrame(all_rows, columns=["ticker", "filed", "signed_value", "is_purchase"])
+    df["filed"] = pd.to_datetime(df["filed"])
     data: Dict[str, pd.DataFrame] = {}
-    for t, v in blob.items():
-        df = pd.read_json(v, orient="split")
-        df["filed"] = pd.to_datetime(df["filed"])
-        data[t] = df.set_index("filed").sort_index()
+    for t, g in df.groupby("ticker"):
+        data[t] = g.drop(columns="ticker").set_index("filed").sort_index()
 
-    todo = [t for t in tickers if t not in blob]
-    log.info("Insider fetch: %d cached, %d to fetch (resumable).", len(blob), len(todo))
-    for t in todo:
-        cik = cik_map.get(t.upper())
-        rows = []
-        if cik is not None:
-            for filed, acc, doc in _form4_refs(cik, ua):
-                url = _ARCHIVE.format(cik=cik, acc=acc.replace("-", ""), doc=doc)
-                xml = _http_text(url, ua)
-                if xml:
-                    for tx in parse_form4_xml(xml):
-                        rows.append((filed, tx["signed_value"], tx["is_purchase"]))
-                time.sleep(0.12)  # be polite to SEC
-        df = pd.DataFrame(rows, columns=["filed", "signed_value", "is_purchase"])
-        if rows:
-            df["filed"] = pd.to_datetime(df["filed"])
-            data[t] = df.set_index("filed").sort_index()
-        # persist progress after each ticker (even empties, so we don't refetch)
-        blob[t] = df.to_json(orient="split", date_format="iso")
-        json.dump(blob, open(progress, "w"))
-        log.info("Insider %s: %d open-market transactions (%d/%d done)",
-                 t, len(rows), len(blob), len(tickers))
-
-    if not data:
-        log.warning("Insider data unavailable; pipeline runs without it.")
-        return None
     try:
-        json.dump({t: df.reset_index().to_json(orient="split", date_format="iso")
-                   for t, df in data.items()}, open(cache, "w"))
-        log.info("Cached insider data for %d tickers -> %s", len(data), cache)
+        json.dump({t: g.reset_index().to_json(orient="split", date_format="iso")
+                   for t, g in data.items()}, open(cache, "w"))
+        log.info("Cached insider data for %d tickers (%d quarters) -> %s",
+                 len(data), n_ok, cache)
     except Exception as e:
         log.warning("Could not cache insider data (%s)", e)
     return Insider(data, "edgar")
-
-
-def _http_text(url: str, ua: str) -> Optional[str]:
-    headers = {"User-Agent": ua}
-    try:
-        import requests
-        r = requests.get(url, headers=headers, timeout=30)
-        return r.text if r.status_code == 200 else None
-    except Exception:
-        try:
-            import urllib.request
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                return resp.read().decode(errors="ignore")
-        except Exception:
-            return None
