@@ -22,6 +22,10 @@ class Sleeve:
     allocation: float = 1.0              # share of the LIVE risk budget
     status: str = "shadow"               # shadow | live
     max_class_weight: float = 0.70       # asset-class exposure cap (stocks 70%, crypto 30%)
+    bucket: str = "core"                 # core | experimental (experimental capped at 5%)
+
+
+EXPERIMENTAL_CAP = 0.05                   # GOAL: experimental portfolio <= 5%
 
 
 @dataclass
@@ -57,6 +61,11 @@ class SleeveManager:
             room = max(s.max_class_weight - class_used.get(s.asset_class, 0.0), 0.0)
             if cls_sum > room and cls_sum > 0:
                 scaled = scaled * (room / cls_sum)
+            # experimental sleeves are capped at 5% of the portfolio (GOAL)
+            if s.bucket == "experimental":
+                exp_sum = scaled.sum()
+                if exp_sum > EXPERIMENTAL_CAP and exp_sum > 0:
+                    scaled = scaled * (EXPERIMENTAL_CAP / exp_sum)
             class_used[s.asset_class] = class_used.get(s.asset_class, 0.0) + scaled.sum()
             for k, v in scaled.items():
                 combined[k] = combined.get(k, 0.0) + float(v)

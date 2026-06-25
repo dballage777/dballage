@@ -51,6 +51,8 @@ class DecisionEngine:
 
     def decide(self, scores: pd.Series, current_weights: Optional[pd.Series] = None,
                regime_risk_on: bool = True, governor_exposure: float = 1.0,
+               recent_returns: Optional[pd.DataFrame] = None,
+               corr_threshold: float = 0.80,
                sources: str = "price+volatility (validated)") -> List[Decision]:
         current_weights = current_weights if current_weights is not None else pd.Series(dtype=float)
         scores = scores.dropna()
@@ -61,6 +63,9 @@ class DecisionEngine:
         k = max(int(np.ceil(len(scores) * self.top_quantile)), 1)
         long_set = set(scores.sort_values(ascending=False).index[:k])
 
+        # ---- correlation-overload check (decision hierarchy step 4) ----
+        corr_overload = self._correlation_overload(long_set, recent_returns, corr_threshold)
+
         # raw target weights (graduated) before governance scaling
         raw = {}
         for a in scores.index:
@@ -69,8 +74,11 @@ class DecisionEngine:
         total = sum(raw.values())
         base_w = {a: (raw[a] / total if total > 0 else 0.0) for a in raw}
 
-        # global exposure from regime + hard-risk governor (CASH if risk-off/killed)
+        # global exposure from regime + hard-risk governor (CASH if risk-off/killed),
+        # halved on correlation overload (hidden-concentration risk control)
         global_exposure = governor_exposure * (1.0 if regime_risk_on else 0.0)
+        if corr_overload:
+            global_exposure *= 0.5
 
         decisions: List[Decision] = []
         for a in scores.index:
@@ -88,6 +96,20 @@ class DecisionEngine:
                 confidence=round(conf, 1), target_weight=round(tgt, 4),
                 reasoning=reason, sources=sources))
         return decisions
+
+    @staticmethod
+    def _correlation_overload(long_set, recent_returns, threshold) -> bool:
+        """Flag if the selected basket is dangerously concentrated in correlated
+        names (avg pairwise correlation above ``threshold``)."""
+        if recent_returns is None or len(long_set) < 2:
+            return False
+        cols = [c for c in long_set if c in recent_returns.columns]
+        if len(cols) < 2:
+            return False
+        corr = recent_returns[cols].corr().values
+        n = corr.shape[0]
+        off = (corr.sum() - n) / (n * n - n)        # mean off-diagonal correlation
+        return bool(off > threshold)
 
     def _evaluate(self, a, ev, conf, cur, tgt, regime_on, gov_exp):
         # GOVERNANCE / no-trade hierarchy (default = cash / no new risk)
