@@ -349,6 +349,9 @@ def parse_args():
                    help="greedily drop features with |corr| above this (e.g. 0.9)")
     p.add_argument("--regime-filter", action="store_true",
                    help="cut exposure in risk-off regimes (bear / stressed vol)")
+    p.add_argument("--overlay", action="store_true",
+                   help="beta-overlay mode: long-biased market exposure tilted by signal")
+    p.add_argument("--overlay-tilt", type=float, default=None, help="overlay tilt strength")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -394,6 +397,10 @@ def main():
     cfg._prune_corr = args.prune_corr
     if args.regime_filter:
         cfg.backtest.regime_filter = True
+    if args.overlay:
+        cfg.backtest.portfolio_mode = "overlay"
+    if args.overlay_tilt is not None:
+        cfg.backtest.overlay_tilt = args.overlay_tilt
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

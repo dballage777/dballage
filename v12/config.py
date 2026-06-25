@@ -114,6 +114,10 @@ class BacktestConfig:
     vol_target_annual: float = 0.15   # annualised vol target (None disables)
     weighting: str = "inverse_vol"    # "equal" | "inverse_vol" | "risk_parity"
     max_weight: float = 0.08          # single-position cap (Phase 1: 5-8% for stocks)
+    # "neutral" = market-neutral top-quantile long; "overlay" = long-biased beta
+    # + signal tilt (aims to beat SPY in absolute return).
+    portfolio_mode: str = "neutral"
+    overlay_tilt: float = 3.0          # how hard the overlay tilts toward signal
     use_kelly: bool = True            # Phase 1: fractional-Kelly risk budget
     kelly_fraction_cap: float = 0.25  # deploy at most 25% of full Kelly
     # Regime filter: cut exposure when the market is not "risk_on" (bear or

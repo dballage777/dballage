@@ -101,14 +101,25 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
             today_scores = predictions.loc[d] if d in predictions.index.get_level_values("date") else None
             if today_scores is not None and len(today_scores) > 0:
                 scores = today_scores.dropna().sort_values(ascending=False)
-                k = max(int(np.ceil(len(scores) * cfg.top_quantile)), 1)
-                picks = scores.index[:k].tolist()
+                mode = getattr(cfg, "portfolio_mode", "neutral")
+                w_new = None
+                if mode == "overlay":
+                    # Long-biased BETA-OVERLAY: hold the whole universe (~market
+                    # exposure) but tilt weights toward high-signal names. Aims to
+                    # beat SPY in *absolute* return rather than be market-neutral.
+                    ranks = scores.rank(pct=True) - 0.5
+                    raw = (1.0 + cfg.overlay_tilt * ranks).clip(lower=0)
+                    w_new = (raw / raw.sum()).clip(upper=cfg.max_weight)
+                    w_new = w_new / w_new.sum()
+                else:
+                    k = max(int(np.ceil(len(scores) * cfg.top_quantile)), 1)
+                    picks = scores.index[:k].tolist()
+                    lookback = daily_ret.loc[:d].tail(60)[picks].dropna(how="all", axis=1)
+                    picks = [p for p in picks if p in lookback.columns]
+                    if picks:
+                        w_new = compute_weights(cfg.weighting, lookback[picks].dropna(), cfg.max_weight)
 
-                lookback = daily_ret.loc[:d].tail(60)[picks].dropna(how="all", axis=1)
-                picks = [p for p in picks if p in lookback.columns]
-                if picks:
-                    w_new = compute_weights(cfg.weighting, lookback[picks].dropna(), cfg.max_weight)
-
+                if w_new is not None:
                     # ---- exposure overlays ----
                     exposure = 1.0
                     if breadth is not None and d in breadth.index:
