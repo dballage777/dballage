@@ -195,7 +195,8 @@ def run(config: ExperimentConfig) -> dict:
     spy_perf = performance_summary(bt.spy_returns, "SPY")
     ic_full = information_coefficient(results[best]["oos"], panel["target"])
     mc = monte_carlo_bootstrap(bt.strategy_returns)
-    stress = stress_tests(bt.strategy_returns)
+    stress = stress_tests(bt.strategy_returns, avg_turnover=bt.avg_turnover,
+                          n_rebalances=bt.meta.get("n_rebalances"))
 
     # 7. Report context
     model_table = "| model | mean OOS rank-IC | folds |\n|---|---|---|\n" + "\n".join(

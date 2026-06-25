@@ -45,11 +45,26 @@ def monte_carlo_bootstrap(returns: pd.Series, n_sims: int = 1000,
     }
 
 
-def stress_tests(returns: pd.Series) -> Dict[str, float]:
-    """Mechanical robustness shocks."""
+def stress_tests(returns: pd.Series, avg_turnover: float = None,
+                 n_rebalances: int = None) -> Dict[str, float]:
+    """Mechanical robustness shocks.
+
+    Cost-stress is **turnover-aware**: an extra 5bps is charged per unit of
+    turnover *at each rebalance*, not flat every day. Flat-daily 5bps would
+    impose ~12.6%/yr of phantom cost on a strategy that only trades a few times
+    a year — over-penalizing low-turnover strategies. (Baseline realistic costs
+    are already charged in the §4 backtest; this is an *additional* stress.)
+    """
     out = {}
-    # 1) extra 5bps/day cost drag
-    out["stress_cost_5bps_sharpe"] = sharpe(returns - 0.0005)
+    if avg_turnover is not None and n_rebalances and len(returns) > 0:
+        years = max(len(returns) / 252.0, 1e-9)
+        rebals_per_year = n_rebalances / years
+        annual_extra = avg_turnover * rebals_per_year * 0.0005  # +5bps per side
+        daily_drag = annual_extra / 252.0
+        out["stress_cost_5bps_sharpe"] = sharpe(returns - daily_drag)
+        out["stress_cost_extra_annual"] = float(annual_extra)
+    else:
+        out["stress_cost_5bps_sharpe"] = sharpe(returns - 0.0005)  # flat fallback
     # 2) worst 1% days doubled (fat-tail shock)
     r = returns.copy()
     thr = r.quantile(0.01)
