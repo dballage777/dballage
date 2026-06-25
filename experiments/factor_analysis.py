@@ -25,7 +25,8 @@ from v12.data import load_prices
 from v12.features import build_dataset
 from v12.validation import PurgedWalkForward, assert_no_leakage
 from v12.evaluation.factor_analytics import (ablation, ic_significance, signal_decay,
-                                             redundancy, ic_by_year)
+                                             redundancy, ic_by_year, ic_by_regime)
+from v12.regime import classify_regime, regime_label
 from experiments.run_experiment import _walk_forward_predict
 from v12.utils import get_logger
 
@@ -103,6 +104,9 @@ def main():
     oos_pred, _, _ = _walk_forward_predict(panel, feature_cols, folds, args.model, cfg.models)
     decay = signal_decay(oos_pred, data.close, names)
     yearly = ic_by_year(oos_pred, panel["target"])
+    reg_df = classify_regime(data.close[cfg.data.benchmark])
+    reg_labels = reg_df.apply(regime_label, axis=1)
+    by_regime = ic_by_regime(oos_pred, panel["target"], reg_labels)
     redun = redundancy(panel, feature_cols, 0.7)
 
     # --- report ---
@@ -131,6 +135,13 @@ def main():
         L.append("| year | " + " | ".join(str(y) for y in yearly) + " |")
         L.append("|" + "---|" * (len(yearly) + 1))
         L.append("| IC | " + " | ".join(_fmt(v) for v in yearly.values()) + " |")
+
+    if by_regime:
+        L.append("\n## IC by market regime (the reversal diagnosis)")
+        L.append("| regime | mean IC | n_days |")
+        L.append("|---|---|---|")
+        for reg, r in sorted(by_regime.items(), key=lambda kv: -kv[1]["ic_mean"]):
+            L.append(f"| {reg} | {_fmt(r['ic_mean'])} | {r['n_days']} |")
 
     L.append(f"\n## Redundancy (|corr|>0.7): {len(redun)} pairs")
     for a, b, c in redun[:15]:

@@ -67,6 +67,12 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
     rebal_dates = set(dates[::cfg.rebalance_days])
     contrib_sched = _contribution_dates(dates, cfg)
 
+    # Point-in-time regime labels for the optional risk-off exposure gate
+    regime_on = None
+    if getattr(cfg, "regime_filter", False):
+        from ..regime import classify_regime
+        regime_on = classify_regime(benchmark)["risk_on"]
+
     cur_w = pd.Series(dtype=float)            # current target weights (assets)
     weights_hist = {}
     tw_returns, turnovers = [], []
@@ -115,6 +121,8 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
                     if getattr(cfg, "use_kelly", False) and len(recent_port_rets) > 20:
                         exposure *= kelly_exposure(
                             pd.Series(recent_port_rets), cfg.kelly_fraction_cap)
+                    if regime_on is not None and d in regime_on.index and regime_on.loc[d] < 0.5:
+                        exposure *= cfg.regime_off_exposure  # risk-off: cut exposure
                     w_new = w_new * exposure
 
                     # ---- turnover & cost ----

@@ -121,6 +121,22 @@ def signal_decay(oos_pred: pd.Series, close: pd.DataFrame, names: List[str],
     return out
 
 
+def ic_by_regime(oos_pred: pd.Series, target: pd.Series, regime: pd.Series) -> Dict[str, dict]:
+    """Mean per-date rank-IC within each market regime (the reversal diagnosis)."""
+    df = pd.DataFrame({"pred": oos_pred, "y": target}).dropna()
+    if df.empty:
+        return {}
+    dates = df.index.get_level_values("date")
+    df = df.assign(regime=regime.reindex(dates).values)
+    out = {}
+    for reg, sub in df.groupby("regime"):
+        by_date = sub.groupby(level="date").apply(
+            lambda g: g["pred"].corr(g["y"], method="spearman")).dropna()
+        if len(by_date):
+            out[str(reg)] = {"ic_mean": float(by_date.mean()), "n_days": int(len(by_date))}
+    return out
+
+
 def redundancy(panel, feature_cols, threshold: float = 0.7) -> List:
     """Highly-correlated feature pairs (candidates for pruning)."""
     corr = panel[feature_cols].corr()

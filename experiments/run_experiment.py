@@ -347,6 +347,8 @@ def parse_args():
                    help="restrict to factor families, e.g. 'volatility,cross_sectional'")
     p.add_argument("--prune-corr", type=float, default=None,
                    help="greedily drop features with |corr| above this (e.g. 0.9)")
+    p.add_argument("--regime-filter", action="store_true",
+                   help="cut exposure in risk-off regimes (bear / stressed vol)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -390,6 +392,8 @@ def main():
         cfg.features.use_insider = True
     cfg._keep_families = [f.strip() for f in args.families.split(",")] if args.families else None
     cfg._prune_corr = args.prune_corr
+    if args.regime_filter:
+        cfg.backtest.regime_filter = True
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

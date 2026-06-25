@@ -116,6 +116,10 @@ class BacktestConfig:
     max_weight: float = 0.08          # single-position cap (Phase 1: 5-8% for stocks)
     use_kelly: bool = True            # Phase 1: fractional-Kelly risk budget
     kelly_fraction_cap: float = 0.25  # deploy at most 25% of full Kelly
+    # Regime filter: cut exposure when the market is not "risk_on" (bear or
+    # stressed-vol) — the regimes where the scorecard showed the signal reverses.
+    regime_filter: bool = False
+    regime_off_exposure: float = 0.20  # exposure multiplier when risk-off
 
 
 @dataclass
