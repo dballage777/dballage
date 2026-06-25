@@ -356,6 +356,8 @@ def parse_args():
                    help="enable hard risk governor (DD kill-switch, daily stop, loss freeze)")
     p.add_argument("--no-trade-band", type=float, default=None,
                    help="skip position changes below this size (cuts turnover/cost)")
+    p.add_argument("--graduated", action="store_true",
+                   help="conviction-scaled position sizing (graduated, not binary top-quantile)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -409,6 +411,8 @@ def main():
         cfg.backtest.hard_risk = True
     if args.no_trade_band is not None:
         cfg.backtest.no_trade_band = args.no_trade_band
+    if args.graduated:
+        cfg.backtest.graduated_sizing = True
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:
