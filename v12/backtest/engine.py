@@ -73,6 +73,14 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
         from ..regime import classify_regime
         regime_on = classify_regime(benchmark)["risk_on"]
 
+    # Hard risk-control governor (kill-switch / loss-stop / loss-freeze)
+    governor = None
+    if getattr(cfg, "hard_risk", False):
+        from ..risk.governor import RiskGovernor
+        governor = RiskGovernor(cfg.max_drawdown_stop, cfg.daily_loss_stop,
+                                cfg.max_consec_losses, cfg.risk_cooldown_days,
+                                cfg.reenter_drawdown)
+
     cur_w = pd.Series(dtype=float)            # current target weights (assets)
     weights_hist = {}
     tw_returns, turnovers = [], []
@@ -94,6 +102,9 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
             gross_ret = float((cur_w * r).sum())
         else:
             gross_ret = 0.0
+        # ---- hard risk governor: today's exposure from state through yesterday ----
+        if governor is not None:
+            gross_ret *= governor.exposure()
         cost_today = 0.0
 
         # ---- rebalance ----
@@ -136,6 +147,15 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
                         exposure *= cfg.regime_off_exposure  # risk-off: cut exposure
                     w_new = w_new * exposure
 
+                    # ---- no-trade band: skip sub-threshold position changes ----
+                    if getattr(cfg, "no_trade_band", 0.0) > 0 and len(cur_w) > 0:
+                        idx = cur_w.index.union(w_new.index)
+                        new = w_new.reindex(idx).fillna(0.0)
+                        old = cur_w.reindex(idx).fillna(0.0)
+                        keep = (new - old).abs() < cfg.no_trade_band
+                        new[keep] = old[keep]
+                        w_new = new[new != 0]
+
                     # ---- turnover & cost ----
                     all_idx = cur_w.index.union(w_new.index)
                     turn = float((w_new.reindex(all_idx).fillna(0)
@@ -145,6 +165,8 @@ def run_backtest(predictions: pd.Series, close: pd.DataFrame, benchmark: pd.Seri
                     cur_w = w_new
 
         net_ret = gross_ret - cost_today
+        if governor is not None:
+            governor.update(net_ret)
         tw_series.append((d, net_ret))
         recent_port_rets.append(net_ret)
         if len(recent_port_rets) > 60:

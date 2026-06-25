@@ -352,6 +352,10 @@ def parse_args():
     p.add_argument("--overlay", action="store_true",
                    help="beta-overlay mode: long-biased market exposure tilted by signal")
     p.add_argument("--overlay-tilt", type=float, default=None, help="overlay tilt strength")
+    p.add_argument("--hard-risk", action="store_true",
+                   help="enable hard risk governor (DD kill-switch, daily stop, loss freeze)")
+    p.add_argument("--no-trade-band", type=float, default=None,
+                   help="skip position changes below this size (cuts turnover/cost)")
     p.add_argument("--horizon", type=int, default=None,
                    help="forward-return target horizon in trading days (default 5)")
     p.add_argument("--folds", type=int, default=None,
@@ -401,6 +405,10 @@ def main():
         cfg.backtest.portfolio_mode = "overlay"
     if args.overlay_tilt is not None:
         cfg.backtest.overlay_tilt = args.overlay_tilt
+    if args.hard_risk:
+        cfg.backtest.hard_risk = True
+    if args.no_trade_band is not None:
+        cfg.backtest.no_trade_band = args.no_trade_band
     if args.models:
         cfg.models.candidates = [m.strip() for m in args.models.split(",") if m.strip()]
     if args.no_stack:

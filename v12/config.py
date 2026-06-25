@@ -124,6 +124,15 @@ class BacktestConfig:
     # stressed-vol) — the regimes where the scorecard showed the signal reverses.
     regime_filter: bool = False
     regime_off_exposure: float = 0.20  # exposure multiplier when risk-off
+    # Hard risk-control governor (capital preservation). Canonical values.
+    hard_risk: bool = False
+    max_drawdown_stop: float = 0.20
+    daily_loss_stop: float = 0.04
+    max_consec_losses: int = 3
+    risk_cooldown_days: int = 5
+    reenter_drawdown: float = 0.10
+    # No-trade band: skip position changes smaller than this (cuts turnover/cost).
+    no_trade_band: float = 0.0
 
 
 @dataclass
