@@ -46,7 +46,7 @@ def top_n(scores: pd.DataFrame, decisions: List, targets: Dict[str, float],
         in_t = targets.get(asset, 0.0) > 0
         action = _action_for(asset, d, comp, in_t)
         px = float(last_price[asset]) if (last_price is not None and asset in last_price) else None
-        entry = (f"{px*0.99:.2f}-{px*1.01:.2f}" if px else "n/a")
+        entry = (f"{px*0.99:.4g}-{px*1.01:.4g}" if px else "n/a")
         rows.append({
             "asset": asset,
             "score": round(comp, 1),

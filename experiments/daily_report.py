@@ -66,7 +66,9 @@ def main():
                           volume[[c for c in universe if c in volume.columns]],
                           model_ev=model_ev, asof=pd.Timestamp(sysres.date))
 
-    last_price = close.loc[:pd.Timestamp(sysres.date)].iloc[-1]
+    # ffill so weekend/holiday rows (crypto trades, stocks don't) don't blank out
+    # stock prices — carry the last actual trading price forward.
+    last_price = close.loc[:pd.Timestamp(sysres.date)].ffill().iloc[-1]
     allocation = {"stocks": sysres.stock_exposure, "crypto": sysres.crypto_exposure,
                   "cash": sysres.cash}
     md = build_daily_report(
