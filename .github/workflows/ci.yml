@@ -2,7 +2,10 @@ name: V12 CI
 
 on:
   push:
-    branches: ["**"]
+    # Skip the `main` mirror: every commit there is identical to one already
+    # pushed to the dev branch, which runs CI — so running it again on main is
+    # pure duplication (and double the notifications). PRs still run.
+    branches-ignore: ["main"]
   pull_request:
 
 jobs:
