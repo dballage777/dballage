@@ -30,14 +30,15 @@ jobs:
       - name: Install core deps
         run: |
           python -m pip install --upgrade pip
-          pip install numpy pandas scipy scikit-learn pyarrow yfinance
+          pip install numpy pandas scipy scikit-learn pyarrow yfinance fpdf2
       - name: Run shadow horse-race (all 4 variants, real data)
         run: |
           mkdir -p paper/reports
           python -m experiments.run_all_shadow --log paper/shadow_ledger.jsonl
           python -m experiments.daily_report --out paper/reports || true
           python -m experiments.standings --log paper/shadow_ledger.jsonl --out paper/reports || true
-      - name: Commit ledger + report
+          python -m experiments.export_reports --log paper/shadow_ledger.jsonl --out paper/reports || true
+      - name: Commit ledger + reports (md + csv + pdf)
         run: |
           git config user.name  "shadow-bot"
           git config user.email "actions@github.com"
@@ -48,3 +49,23 @@ jobs:
             git commit -m "paper: daily shadow run $(date -u +%Y-%m-%d) [skip ci]"
             git push
           fi
+      # Optional: email the CSV + PDF. Only runs if you add the MAIL_* secrets
+      # (Settings -> Secrets and variables -> Actions). See docs/EMAIL_REPORTS.md.
+      - name: Email reports
+        if: ${{ env.MAIL_PASSWORD != '' }}
+        env:
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.MAIL_PORT || '465' }}
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Shadow paper report — ${{ github.run_id }}"
+          to: ${{ secrets.MAIL_TO || 'dballage@nafcs.org' }}
+          from: V12 Shadow Bot
+          body: |
+            Daily shadow paper-trading report attached (CSV scoreboard + PDF summary).
+            Full detail: https://github.com/dballage777/dballage/tree/main/paper/reports
+          attachments: paper/reports/standings.csv,paper/reports/shadow_report.pdf
