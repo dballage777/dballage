@@ -47,7 +47,7 @@ def main():
     cfg.__post_init__()
 
     data = load_prices(cfg.data)
-    panel, feats = build_dataset(data, cfg.features, cfg.data)
+    panel, feats = build_dataset(data, cfg.features, cfg.data, keep_unlabeled=True)
     feats = select_features(panel, feats, ["volatility", "cross_sectional"], prune_corr=0.9)
     panel = panel[feats + ["target"]]
 

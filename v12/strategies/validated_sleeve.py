@@ -47,7 +47,7 @@ def build_validated_sleeve(end: str = "2026-06-20",
     cfg.__post_init__()
 
     data = load_prices(cfg.data)
-    panel, all_feats = build_dataset(data, cfg.features, cfg.data)
+    panel, all_feats = build_dataset(data, cfg.features, cfg.data, keep_unlabeled=True)
     feats = select_features(panel, all_feats, ["volatility", "cross_sectional"], prune_corr=0.9)
     panel = panel[feats + ["target"]]
 

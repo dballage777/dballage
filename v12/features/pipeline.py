@@ -57,7 +57,8 @@ class FeaturePipeline:
         f["rsi"] = T.rsi(c)
         return pd.DataFrame(f)
 
-    def build(self, data: PriceData, fundamentals=None, insider=None):
+    def build(self, data: PriceData, fundamentals=None, insider=None,
+              keep_unlabeled=False):
         cfg, dcfg = self.cfg, self.data_cfg
         names = [t for t in dcfg.universe if t in data.close.columns]
         log.info("Building features for %d names...", len(names))
@@ -170,12 +171,21 @@ class FeaturePipeline:
             panel[col] = wide.stack(future_stack=True).reorder_levels([0, 1])
 
         before = len(panel)
-        panel = panel.replace([np.inf, -np.inf], np.nan).dropna()
+        panel = panel.replace([np.inf, -np.inf], np.nan)
+        if keep_unlabeled:
+            # Inference mode: keep the most recent dates whose forward-return
+            # target hasn't realized yet (target is NaN there) so the engine can
+            # score *today*. Drop only rows with missing FEATURES. Training code
+            # must still filter on a non-null target (dropna(subset=["target"])).
+            panel = panel.dropna(subset=feature_cols)
+        else:
+            panel = panel.dropna()
         log.info("Feature panel: %d rows (dropped %d warmup/NaN), %d features.",
                  len(panel), before - len(panel), len(feature_cols))
         return panel, feature_cols
 
 
-def build_dataset(data: PriceData, feature_cfg, data_cfg, fundamentals=None, insider=None):
+def build_dataset(data: PriceData, feature_cfg, data_cfg, fundamentals=None,
+                  insider=None, keep_unlabeled=False):
     return FeaturePipeline(feature_cfg, data_cfg).build(
-        data, fundamentals=fundamentals, insider=insider)
+        data, fundamentals=fundamentals, insider=insider, keep_unlabeled=keep_unlabeled)

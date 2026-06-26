@@ -84,7 +84,7 @@ def _score_horizon(data, cfg: ExperimentConfig, horizon: int,
     """Train the validated model for one horizon and score the latest date."""
     cfg.features.target_horizon = horizon
     cfg.__post_init__()
-    panel, all_feats = build_dataset(data, cfg.features, cfg.data)
+    panel, all_feats = build_dataset(data, cfg.features, cfg.data, keep_unlabeled=True)
     if feats is None:
         feats = select_features(panel, all_feats, ["volatility", "cross_sectional"],
                                 prune_corr=0.9)
