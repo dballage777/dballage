@@ -133,19 +133,32 @@ def main():
 
     led = ShadowLedger(args.log)
     summary = {"date": f"{sysres.date:%Y-%m-%d}", "learning_active": sysres.learning_active,
-               "sleeves": {}}
+               "sleeves": {}, "logged": 0, "skipped": 0}
     for name, date, targets, decisions, regime, expo in table:
         pdate, ptgt = prev.get(name, (None, {}))
-        day_ret = _realized_return(ptgt, pdate, pd.Timestamp(date), close) if pdate else None
-        led.log(date=f"{date:%Y-%m-%d}", sleeve=name, status="shadow",
-                decisions=DecisionEngine.to_records(decisions), day_return=day_ret)
+        # Idempotent per scoring date: only log if this decision date is NEWER than
+        # the sleeve's last logged date. Re-running the same day (manual + scheduled,
+        # or a market-closed day) must not append a duplicate row that pollutes the
+        # realized-return series with a spurious 0-return entry.
+        is_new = pdate is None or pd.Timestamp(date) > pd.Timestamp(pdate)
+        if is_new:
+            day_ret = _realized_return(ptgt, pdate, pd.Timestamp(date), close) if pdate else None
+            led.log(date=f"{date:%Y-%m-%d}", sleeve=name, status="shadow",
+                    decisions=DecisionEngine.to_records(decisions), day_return=day_ret)
+            summary["logged"] += 1
+        else:
+            day_ret = None                       # already have this date — skip, no dup
+            summary["skipped"] += 1
         perf = led.rolling_performance(name)
         summary["sleeves"][name] = {
             "regime": regime, "exposure": round(float(expo), 4),
             "n_positions": int(sum(1 for w in targets.values() if w > 0)),
-            "day_return": day_ret, "roll_sharpe": perf.get("sharpe"),
+            "day_return": day_ret, "logged": is_new, "roll_sharpe": perf.get("sharpe"),
             "roll_cum": perf.get("cum_return"), "n_days": perf.get("n_days", 0),
         }
+    if summary["skipped"]:
+        log.info("%d sleeve(s) already logged for their latest date — skipped (idempotent).",
+                 summary["skipped"])
 
     print(f"\n=== SHADOW HORSE-RACE {summary['date']} "
           f"(learning {'ON' if sysres.learning_active else 'cold start'}) ===")
@@ -156,7 +169,8 @@ def main():
         print(f"{name:18} {s['regime'][:22]:22} {s['exposure']*100:5.1f}% {s['n_positions']:>4} "
               f"{dr:>8} {sh:>7} {s['n_days']:>5}")
     print("\nSHADOW_SUMMARY=" + json.dumps(summary, default=float))
-    log.info("Logged %d shadow sleeves to %s", len(table), args.log)
+    log.info("Logged %d new sleeve row(s) (%d skipped, already current) to %s",
+             summary["logged"], summary["skipped"], args.log)
 
 
 if __name__ == "__main__":
