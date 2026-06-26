@@ -1,0 +1,40 @@
+# 24/7 shadow paper-trading stack for a DigitalOcean droplet.
+#
+#   docker compose up -d
+#
+# - `engine` builds the repo image (used by n8n's Execute Command node, and for
+#   manual one-off runs: `docker compose run --rm engine`).
+# - `n8n` schedules the daily shadow horse-race and stores/alerts on results.
+#
+# The engine does NOT trade real money. Live PAPER orders (Alpaca paper) are
+# opt-in and require ALPACA_KEY/ALPACA_SECRET in the .env file.
+services:
+  engine:
+    build: .
+    image: v12-engine:latest
+    env_file: [.env]
+    volumes:
+      - ./results:/opt/v12/results
+      - ./data_cache:/opt/v12/data_cache
+    # default command runs one shadow race; n8n drives the schedule
+    restart: "no"
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - GENERIC_TIMEZONE=${TZ:-America/New_York}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+      # mount the repo so n8n's Execute Command node can run the engine in-place
+      - ./:/opt/v12
+    # let n8n shell out to the host docker or run python directly in /opt/v12
+    working_dir: /opt/v12

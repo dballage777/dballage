@@ -89,13 +89,19 @@ def _learning_multipliers(log_path: Optional[str]) -> tuple[Dict[str, float], Di
 def build_full_system(end: str = "2026-06-20",
                       stock_universe: Optional[List[str]] = None,
                       crypto_universe: Optional[List[str]] = None,
-                      log_path: Optional[str] = None) -> FullSystemResult:
+                      log_path: Optional[str] = None,
+                      read_log_path: Optional[str] = None) -> FullSystemResult:
     """Run both sleeves, apply the learning loop, and combine under the GOAL
-    capital structure (stocks <= 70% + crypto <= 30%, remainder CASH)."""
+    capital structure (stocks <= 70% + crypto <= 30%, remainder CASH).
+
+    ``read_log_path`` lets the learning loop read prior realized performance from
+    an existing ledger *without* writing to it (the runner does its own
+    realized-return logging). If omitted, ``log_path`` is used for both.
+    """
     stock = build_stock_sleeve(end=end, universe=stock_universe, log_path=None)
     crypto = build_crypto_sleeve(end=end, universe=crypto_universe, log_path=None)
 
-    learn_weights, mult, learning_active = _learning_multipliers(log_path)
+    learn_weights, mult, learning_active = _learning_multipliers(read_log_path or log_path)
 
     combined: Dict[str, float] = {}
     for a, w in stock.targets.items():
