@@ -1,0 +1,49 @@
+name: Daily Shadow Paper Test
+
+# Runs the forward paper horse-race once a day on GitHub's always-on infra
+# (free, real yfinance data) and commits the growing ledger + report back to the
+# repo so the 90-180 day test accumulates with zero babysitting.
+#
+# Trigger it by hand any time from the Actions tab ("Run workflow").
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"      # ~after US close (22:30 UTC, weekdays)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write                 # allow committing the ledger back
+
+concurrency:
+  group: daily-shadow
+  cancel-in-progress: false
+
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install core deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas scipy scikit-learn pyarrow yfinance
+      - name: Run shadow horse-race (all 4 variants, real data)
+        run: |
+          mkdir -p paper/reports
+          python -m experiments.run_all_shadow --log paper/shadow_ledger.jsonl
+          python -m experiments.daily_report --out paper/reports || true
+      - name: Commit ledger + report
+        run: |
+          git config user.name  "shadow-bot"
+          git config user.email "actions@github.com"
+          git add -f paper/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "paper: daily shadow run $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          fi
