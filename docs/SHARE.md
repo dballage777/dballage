@@ -32,6 +32,9 @@ source-and-percentage specs, and the key build decisions.
 ## 3. What's actually built vs. not (the honest status)
 
 - 🔎 **[GOAL_IMPLEMENTATION_AUDIT.md](GOAL_IMPLEMENTATION_AUDIT.md)** — line-by-line: implemented, partial, infeasible, or proven counterproductive.
+- 📡 **[MONITORING_SPEC.md](MONITORING_SPEC.md)** — the institutional monitoring/ranking/reporting vision with a per-source/per-factor feasibility map (≈35% of the designed source diet is live today).
+- 🧪 **[PAPER_TESTING.md](PAPER_TESTING.md)** — the 90–180 day forward shadow horse-race + promotion gate.
+- ☁️ **[DEPLOY_DIGITALOCEAN.md](DEPLOY_DIGITALOCEAN.md)** — run it 24/7 on a droplet with n8n.
 
 ## 4. What the validated backtest achieved
 
