@@ -1,16 +1,18 @@
 Section,Metric,Strategy,SPY,Winner,Plain-English
-Performance,Sharpe ratio,0.88,0.74,Strategy,Return per unit of total risk (higher better)
-Performance,Sortino ratio,0.95,0.91,Strategy,Return per unit of downside risk
-Performance,Calmar ratio,0.57,0.39,Strategy,Return per unit of worst drawdown
+Performance,Sharpe ratio,0.74,0.74,Tie,Return per unit of total risk (higher better)
+Performance,Sortino ratio,0.81,0.91,SPY,Return per unit of downside risk
+Performance,Calmar ratio,0.47,0.39,Strategy,Return per unit of worst drawdown
 Risk,Max drawdown %,-19.0,-33.7,Strategy,Worst peak-to-trough loss (smaller better)
-Risk,Annual volatility %,12.4,19.3,Strategy,How bumpy the ride is (smaller better)
-Return,CAGR %,10.8,13.2,SPY,Raw annual return (the honest caveat: SPY higher)
-Return,Total return %,126.4,169.6,SPY,Cumulative over the test (SPY higher)
+Risk,Annual volatility %,12.7,19.3,Strategy,How bumpy the ride is (smaller better)
+Return,CAGR %,9.0,13.2,SPY,Raw annual return (SPY higher)
+Return,Total return %,99.1,169.6,SPY,Cumulative over the test (SPY higher)
 Signal,OOS rank-IC,0.0554,,n/a,Correlation of rankings with future returns
 Signal,Fold t-statistic,2.04,,n/a,Statistical significance (>2 = significant)
+Signal,Long-short Sharpe,0.57,,n/a,Dollar-neutral selection probe (modest; weak after survivorship)
 Validation,OOS years,8,,n/a,2018-2026 out-of-sample (32 walk-forward folds)
 Validation,Universe size,54,,n/a,Liquid US large-cap stocks (laggards included)
-Validation,Cost-stress Sharpe,0.75,,n/a,Edge survives extra turnover-aware costs
+Validation,Cost-stress Sharpe,0.73,,n/a,Edge survives extra turnover-aware costs
+Validation,MC stability,1.50,,n/a,Monte-Carlo Sharpe mean/std (higher = more dependable)
 Validation,Leakage tests,PASS,,n/a,Executable proof no feature sees the future
-Validation,Beats SPY absolute,NO,,SPY,Lower-risk alternative not an absolute beater
-Validation,Beats SPY risk-adjusted,YES,Strategy,,Higher Sharpe/Calmar with half the drawdown
+Validation,Beats SPY absolute,NO,,SPY,SPY higher on CAGR and total return
+Validation,Beats SPY risk-adjusted,NO (tie),,Tie,Sharpe 0.74 vs 0.74; edge is drawdown reduction not alpha

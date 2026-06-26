@@ -36,24 +36,34 @@ discipline this platform exists to enforce.
 
 ![Strategy vs SPY](docs/assets/backtest_success_chart.png)
 
-The validated strategy is a **regime-gated low-volatility equity strategy**. It
-**beats SPY on a risk-adjusted basis** — but **not** in absolute return:
+The validated strategy is a **regime-gated low-volatility equity strategy**. On
+the full 8-year out-of-sample window it **roughly matches SPY's risk-adjusted
+return with far smaller drawdowns** — it does **not** beat SPY:
 
 | Metric | Strategy | SPY | |
 |---|---|---|---|
-| Sharpe | **0.88** | 0.74 | ✅ better-compensated risk |
-| Calmar | **0.57** | 0.39 | ✅ |
-| Max drawdown | **−19%** | −34% | ✅ half the crash |
-| Annual volatility | **12.4%** | 19.3% | ✅ |
-| **CAGR (raw return)** | 10.8% | **13.2%** | ⚠️ **SPY wins — honest caveat** |
+| Sharpe | 0.74 | 0.74 | ➖ **tie** (not a beat) |
+| Sortino | 0.81 | **0.91** | ⚠️ SPY better |
+| Calmar | **0.47** | 0.39 | ✅ |
+| Max drawdown | **−19.0%** | −33.7% | ✅ half the crash |
+| Annual volatility | **12.7%** | 19.3% | ✅ |
+| **CAGR (raw return)** | 9.0% | **13.2%** | ⚠️ **SPY wins** |
+| Total return | 99% | **170%** | ⚠️ SPY wins |
 
-Signal quality: out-of-sample rank-IC **0.055**, fold **t-stat 2.04** (>2 =
-statistically significant), across 32 walk-forward folds, leakage-checked, cost-
-and Monte-Carlo-stressed.
+Signal quality: out-of-sample rank-IC **0.0554**, fold **t-stat 2.04** (>2 =
+statistically significant), across 32 walk-forward folds (2018–2026), leakage-
+checked, cost- and Monte-Carlo-stressed. The dollar-neutral long-short probe is a
+**modest 0.57** Sharpe — some real selection skill, weak once survivorship nets out.
 
-> **It is a lower-risk *alternative* to the S&P 500, not a way to beat it in
-> dollars.** That honest "good but modest" is the achievement — the eleven prior
-> versions that looked spectacular were leakage artifacts.
+> **Honest verdict:** a **lower-risk, lower-drawdown *defensive* alternative** to
+> the S&P 500 — about the same risk-adjusted return with roughly **half the
+> crash** — **not** a way to beat it. The signal is real and statistically
+> significant; the *edge* is mostly drawdown reduction (the regime gate), not
+> stock-picking alpha.
+>
+> ⚠️ *An earlier version of this table reported Sharpe 0.88 — that was the recent
+> ~18-month window mislabeled as the full 8 years. The honest full-sample number
+> is 0.74 (a tie with SPY). Corrected on real-data reproduction.*
 
 📄 Full write-up: [`docs/BACKTEST_SUMMARY.md`](docs/BACKTEST_SUMMARY.md) (plain-English + technical) ·
 📊 [`docs/backtest_metrics.csv`](docs/backtest_metrics.csv) (Google-Sheets-ready) ·
