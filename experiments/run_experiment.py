@@ -193,6 +193,18 @@ def run(config: ExperimentConfig) -> dict:
     # 6. Evaluation
     strat_perf = performance_summary(bt.strategy_returns, "strategy")
     spy_perf = performance_summary(bt.spy_returns, "SPY")
+
+    # 6a. Off-the-shelf low-vol ETF benchmarks (the real alternative to beat):
+    # a defensive strategy that only ties SPY must still beat USMV/SPLV to justify
+    # itself, since those deliver "market-with-less-drawdown" for ~0.15%/yr.
+    oos_idx = bt.strategy_returns.index
+    extra_bench = {}
+    for t in getattr(config.data, "extra_benchmarks", []):
+        if t in data.close.columns:
+            r = data.close[t].pct_change().reindex(oos_idx).dropna()
+            if len(r) > 20:
+                extra_bench[t] = performance_summary(r, t)
+
     ic_full = information_coefficient(results[best]["oos"], panel["target"])
     mc = monte_carlo_bootstrap(bt.strategy_returns)
     stress = stress_tests(bt.strategy_returns, avg_turnover=bt.avg_turnover,
@@ -241,6 +253,8 @@ def run(config: ExperimentConfig) -> dict:
         "model_table": model_table,
         "strategy_perf": strat_perf,
         "spy_perf": spy_perf,
+        "extra_bench": extra_bench,
+        "extra_bench_note": _etf_verdict(strat_perf, extra_bench),
         "long_short_perf": ls_perf,
         "long_short_note": ls_note,
         "strategy_final": float(bt.strategy_equity.iloc[-1]),
@@ -287,6 +301,27 @@ def _changes_block(config, best):
             f"leakage assertions (directly addresses the V1-V9A inflated-Sharpe failures).\n"
             f"- Compared {len(config.models.candidates)} models"
             f"{' + stacking' if config.models.use_stacking else ''}; selected **{best}** by OOS rank-IC.")
+
+
+def _etf_verdict(strat, extra_bench):
+    """Honest verdict vs off-the-shelf low-vol ETFs (the real alternative)."""
+    if not extra_bench:
+        return "_No low-vol ETF data available (USMV/SPLV not loaded)._"
+    rows, beats_all = [], True
+    for t, p in extra_bench.items():
+        better_sharpe = strat["sharpe"] > p["sharpe"]
+        better_dd = strat["max_drawdown"] > p["max_drawdown"]   # less negative = shallower
+        if not better_sharpe:
+            beats_all = False
+        tag = ("✅ beats" if better_sharpe and better_dd
+               else "➖ mixed" if better_sharpe or better_dd else "⚠️ loses to")
+        rows.append(f"- vs **{t}**: Sharpe {strat['sharpe']:.2f} vs {p['sharpe']:.2f}, "
+                    f"maxDD {strat['max_drawdown']*100:.1f}% vs {p['max_drawdown']*100:.1f}% → {tag}")
+    head = ("✅ **Clears the low-vol-ETF bar** — beats the off-the-shelf alternatives on Sharpe."
+            if beats_all else
+            "⚠️ **Does NOT clear the low-vol-ETF bar.** An investor could buy USMV/SPLV instead; "
+            "on this evidence the strategy adds no risk-adjusted edge over a cheap defensive ETF.")
+    return head + "\n" + "\n".join(rows)
 
 
 def _failure_analysis(strat, spy, ic, mc, beat, ls=None, survivorship_safe=True):

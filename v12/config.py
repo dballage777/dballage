@@ -66,6 +66,11 @@ class DataConfig:
     signal_strength: float = 1.0
     # SEC EDGAR requires a descriptive User-Agent ("name email"); else env SEC_USER_AGENT.
     sec_user_agent: str = ""
+    # Extra buy-and-hold benchmarks for the report. SPY is the primary benchmark;
+    # USMV/SPLV are the off-the-shelf low-vol ETFs this defensive strategy must
+    # actually beat to justify itself (matching SPY-with-less-drawdown is already
+    # a purchasable product). Loaded if available; silently skipped if not.
+    extra_benchmarks: List[str] = field(default_factory=lambda: ["USMV", "SPLV"])
 
 
 @dataclass

@@ -70,6 +70,19 @@ def build_report(config, ctx: Dict) -> str:
                  f"Strategy **${ctx['strategy_final']:,.2f}** vs "
                  f"SPY **${ctx['spy_final']:,.2f}**")
 
+    # 4a. vs off-the-shelf low-vol ETFs (the real alternative to a defensive strat)
+    extra = ctx.get("extra_bench") or {}
+    if extra:
+        lines.append("\n## 4a. Performance vs low-vol ETFs (the real alternative)")
+        cols = list(extra.keys())
+        etf_tbl = ["| metric | strategy | " + " | ".join(cols) + " |",
+                   "|---|" + "---|" * (len(cols) + 1)]
+        for k in ["sharpe", "sortino", "max_drawdown", "ann_vol", "cagr", "calmar"]:
+            etf_tbl.append(f"| {k} | {_fmt(strat[k])} | "
+                           + " | ".join(_fmt(extra[c][k]) for c in cols) + " |")
+        lines.append("\n".join(etf_tbl))
+        lines.append("\n" + ctx.get("extra_bench_note", ""))
+
     # 4b. Long-short signal probe (survivorship-neutral)
     if "long_short_perf" in ctx:
         lines.append("\n## 4b. Long-short signal probe (dollar-neutral, survivorship-cancelling)")

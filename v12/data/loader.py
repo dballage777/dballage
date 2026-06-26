@@ -167,7 +167,8 @@ def load_prices(cfg) -> PriceData:
 
     ``cfg`` is a DataConfig (see v12.config).
     """
-    all_tickers = sorted(set(cfg.universe) | {cfg.benchmark} | set(cfg.rs_refs))
+    all_tickers = sorted(set(cfg.universe) | {cfg.benchmark} | set(cfg.rs_refs)
+                         | set(getattr(cfg, "extra_benchmarks", [])))
     key = f"prices_{hash((tuple(all_tickers), cfg.start, cfg.end, getattr(cfg, 'signal_strength', 1.0), cfg.synthetic_seed)) & 0xFFFFFFFF:x}"
     path = _cache_path(cfg.cache_dir, key)
 
