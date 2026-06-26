@@ -13,6 +13,7 @@ states how much of the designed source diet is actually live.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import os
 import sys
 import warnings
@@ -37,22 +38,23 @@ SMALL_CRYPTO = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "ADA-USD", "DOGE-USD
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--end", default="2026-06-20")
+    p.add_argument("--end", default=None, help="data end date; defaults to today (live)")
     p.add_argument("--out", default="results/reports")
     p.add_argument("--quick", action="store_true")
     args = p.parse_args()
+    end = args.end or _dt.date.today().isoformat()
 
     stocks = SMALL_STOCKS if args.quick else list(BROAD_UNIVERSE)
     crypto = SMALL_CRYPTO if args.quick else list(CRYPTO_UNIVERSE)
 
-    sysres = build_full_system(end=args.end, stock_universe=stocks, crypto_universe=crypto)
+    sysres = build_full_system(end=end, stock_universe=stocks, crypto_universe=crypto)
 
     # price/volume panels for scoring + entry ranges
     scfg = ExperimentConfig(name="rep_s"); scfg.data.universe = stocks
-    scfg.data.start, scfg.data.end = "2015-01-01", args.end
+    scfg.data.start, scfg.data.end = "2015-01-01", end
     ccfg = ExperimentConfig(name="rep_c"); ccfg.data.universe = crypto
     ccfg.data.benchmark = CRYPTO_BENCHMARK; ccfg.data.rs_refs = [CRYPTO_BENCHMARK]
-    ccfg.data.start, ccfg.data.end = "2018-01-01", args.end
+    ccfg.data.start, ccfg.data.end = "2018-01-01", end
     sdata, cdata = load_prices(scfg.data), load_prices(ccfg.data)
     close = pd.concat([sdata.close, cdata.close], axis=1)
     close = close.loc[:, ~close.columns.duplicated()]

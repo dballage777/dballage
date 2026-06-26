@@ -22,6 +22,7 @@ docs/DEPLOY_DIGITALOCEAN.md). Decision logic only — no order placement.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 import os
 import sys
@@ -91,10 +92,11 @@ def _realized_return(prev_targets, prev_date, today, close: pd.DataFrame) -> flo
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--end", default="2026-06-20")
+    p.add_argument("--end", default=None, help="data end date; defaults to today (live)")
     p.add_argument("--log", default="results/shadow_ledger.jsonl")
     p.add_argument("--quick", action="store_true", help="small universes for a fast smoke run")
     args = p.parse_args()
+    end = args.end or _dt.date.today().isoformat()      # live: advance with the calendar
 
     stocks = SMALL_STOCKS if args.quick else list(BROAD_UNIVERSE)
     crypto = SMALL_CRYPTO if args.quick else list(CRYPTO_UNIVERSE)
@@ -104,16 +106,16 @@ def main():
 
     # build everything; full_system reads prior performance for the learning loop
     # but does NOT write (we do the realized-return logging here)
-    sysres = build_full_system(end=args.end, stock_universe=stocks, crypto_universe=crypto,
+    sysres = build_full_system(end=end, stock_universe=stocks, crypto_universe=crypto,
                                read_log_path=args.log, log_path=None)
-    v1 = build_validated_sleeve(end=args.end, universe=stocks, log_path=None)
+    v1 = build_validated_sleeve(end=end, universe=stocks, log_path=None)
 
     # price panels for realized-return lookup (cached from the builds above)
     scfg = ExperimentConfig(name="rr_s"); scfg.data.universe = stocks
-    scfg.data.start, scfg.data.end = "2015-01-01", args.end
+    scfg.data.start, scfg.data.end = "2015-01-01", end
     ccfg = ExperimentConfig(name="rr_c"); ccfg.data.universe = crypto
     ccfg.data.benchmark = CRYPTO_BENCHMARK; ccfg.data.rs_refs = [CRYPTO_BENCHMARK]
-    ccfg.data.start, ccfg.data.end = "2018-01-01", args.end
+    ccfg.data.start, ccfg.data.end = "2018-01-01", end
     close = pd.concat([load_prices(scfg.data).close, load_prices(ccfg.data).close], axis=1)
     close = close.loc[:, ~close.columns.duplicated()]
 
