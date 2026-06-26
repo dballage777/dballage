@@ -96,6 +96,34 @@ def ablation(panel, feature_cols, folds, model_name, cfg_models) -> Dict:
     return {"full_ic": full_ic, "full_fold_ics": full_folds, "families": rows}
 
 
+def source_verdict(base_fold_ics: List[float], full_fold_ics: List[float],
+                   min_gain: float = 0.002, t_threshold: float = 2.0) -> Dict:
+    """Evidence gate for a new data source / feature family.
+
+    Pairs per-fold OOS IC of the baseline (validated features only) against
+    baseline+candidate on the *same* non-overlapping folds, then runs a paired
+    one-sample t-test on the fold-by-fold IC improvement. A source PASSES only if
+    it improves OOS IC by at least ``min_gain`` on average AND that improvement is
+    statistically significant (paired t > ``t_threshold``). Anything else FAILS —
+    which is exactly what fundamentals and insider did in this project.
+    """
+    pairs = [(b, f) for b, f in zip(base_fold_ics, full_fold_ics)
+             if b == b and f == f]
+    n = len(pairs)
+    deltas = np.array([f - b for b, f in pairs], dtype=float)
+    if n < 3:
+        return {"n_folds": n, "mean_gain": float("nan"), "t_stat": float("nan"),
+                "passed": False, "verdict": "INSUFFICIENT_FOLDS"}
+    mean = float(deltas.mean())
+    sd = float(deltas.std(ddof=1))
+    t = mean / (sd / np.sqrt(n)) if sd > 0 else float("nan")
+    passed = bool(mean > min_gain and t == t and t > t_threshold)
+    verdict = "PASS" if passed else ("HURTS" if mean < -min_gain else "NO_EDGE")
+    return {"n_folds": n, "mean_gain": mean, "t_stat": float(t),
+            "min_gain": min_gain, "t_threshold": t_threshold,
+            "passed": passed, "verdict": verdict}
+
+
 def ic_significance(fold_ics: List[float]) -> Dict[str, float]:
     """Honest fold-level significance (folds are non-overlapping OOS windows)."""
     ics = np.array([x for x in fold_ics if x == x])

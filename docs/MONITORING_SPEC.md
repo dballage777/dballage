@@ -89,6 +89,22 @@ popularity/social factors carry **zero weight** until a validated feed exists.
 
 ---
 
+## The evidence gate (built — run this before paying for anything)
+
+Every candidate source must clear `experiments/validate_source.py` first: it runs
+the same purged/embargoed walk-forward and a **paired per-fold IC significance
+test** of baseline vs baseline+candidate. PASS only if the source improves OOS IC,
+significantly, across folds — exit code 2 on FAIL so n8n/CI can block on it.
+
+```bash
+python -m experiments.validate_source --source fundamentals --broad --horizon 60 \
+    --sector-neutral --folds 34          # (this one FAILS — as the ablation showed)
+python -m experiments.validate_source --family momentum --broad --horizon 60
+```
+
+A source that cannot beat this gate gets **zero weight — no exceptions, including
+paid feeds.** That is the rule that stops you paying for data that adds nothing.
+
 ## What to build next (in honest priority order)
 
 1. **Weekly/monthly/quarterly report aggregations** (pure aggregation of the daily
