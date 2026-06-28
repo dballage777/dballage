@@ -64,3 +64,25 @@ class RiskGovernor:
             self.consec = 0
         if self.consec >= self.max_consec_losses:
             self.cooldown = max(self.cooldown, self.cooldown_days)
+
+
+def governor_exposure_from_returns(returns, max_drawdown: float = 0.20,
+                                   daily_loss_stop: float = 0.04,
+                                   max_consec_losses: int = 3,
+                                   cooldown_days: int = 5,
+                                   reenter_drawdown: float = 0.10):
+    """Replay the hard-risk governor over a sleeve's realized-return history and
+    return ``(exposure_today, reason)``.
+
+    ``exposure_today`` is 1.0 (trade allowed) or 0.0 (cash) based only on returns
+    through *yesterday* — no look-ahead. This is how the live decision path gets
+    the GOAL drawdown kill-switch / daily-loss stop / consecutive-loss freeze that
+    was previously only in the backtest."""
+    g = RiskGovernor(max_drawdown, daily_loss_stop, max_consec_losses,
+                     cooldown_days, reenter_drawdown)
+    for r in returns:
+        if r is None or r != r:          # skip None / NaN
+            continue
+        g.update(float(r))
+    exp = g.exposure()
+    return exp, (g.last_reason or "ok")

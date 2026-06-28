@@ -94,7 +94,8 @@ def _score_horizon(data, cfg: ExperimentConfig, horizon: int,
 
 def build_crypto_sleeve(end: str = "2026-06-20",
                         universe: Optional[List[str]] = None,
-                        log_path: Optional[str] = None) -> CryptoSleeveResult:
+                        log_path: Optional[str] = None,
+                        risk_gov_mult: float = 1.0) -> CryptoSleeveResult:
     """Run the full GOAL-conditioned crypto sleeve for the latest date."""
     cfg = ExperimentConfig(name="paper_v3")
     cfg.data.universe = list(universe or CRYPTO_UNIVERSE)
@@ -123,7 +124,9 @@ def build_crypto_sleeve(end: str = "2026-06-20",
     bench_rets = data.close[cfg.data.benchmark].pct_change().dropna().tail(60)
     kelly_mult = float(np.clip(kelly_exposure(bench_rets, fraction=KELLY_FRACTION,
                                               max_exposure=1.0), 0.0, 1.0))
-    governor_exposure = regime_exposure * (0.5 + 0.5 * kelly_mult)
+    # hard-risk governor (drawdown / daily-loss / 3-loss freeze): 0.0 when a
+    # circuit-breaker is active, else 1.0
+    governor_exposure = regime_exposure * (0.5 + 0.5 * kelly_mult) * float(risk_gov_mult)
 
     # ---- recent returns for the correlation-overload check (alts track BTC) ----
     recent = data.close[cfg.data.universe].pct_change().dropna().tail(60)

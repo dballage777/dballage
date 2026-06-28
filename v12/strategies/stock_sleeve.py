@@ -100,7 +100,8 @@ def _score_horizon(data, cfg: ExperimentConfig, horizon: int,
 
 def build_stock_sleeve(end: str = "2026-06-20",
                        universe: Optional[List[str]] = None,
-                       log_path: Optional[str] = None) -> SleeveResult:
+                       log_path: Optional[str] = None,
+                       risk_gov_mult: float = 1.0) -> SleeveResult:
     """Run the full GOAL-conditioned stock sleeve for the latest date.
 
     Returns a :class:`SleeveResult` with the GOAL-required per-decision output
@@ -135,7 +136,9 @@ def build_stock_sleeve(end: str = "2026-06-20",
     # Kelly *scales* exposure within the regime budget, floor at a small base so
     # the regime gate stays the dominant lever (Kelly trims, regime gates).
     kelly_mult = float(np.clip(kelly_mult, 0.0, 1.0))
-    governor_exposure = regime_exposure * (0.5 + 0.5 * kelly_mult)
+    # hard-risk governor (drawdown / daily-loss / 3-loss freeze) from the live
+    # decision path: risk_gov_mult is 0.0 when a circuit-breaker is active, else 1.0
+    governor_exposure = regime_exposure * (0.5 + 0.5 * kelly_mult) * float(risk_gov_mult)
 
     # ---- recent returns for the correlation-overload check ----
     recent = data.close[cfg.data.universe].pct_change().dropna().tail(60)

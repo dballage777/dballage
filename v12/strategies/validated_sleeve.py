@@ -37,7 +37,8 @@ SLEEVE_NAME = "equity_validated"
 
 def build_validated_sleeve(end: str = "2026-06-20",
                            universe: Optional[List[str]] = None,
-                           log_path: Optional[str] = None) -> SleeveResult:
+                           log_path: Optional[str] = None,
+                           risk_gov_mult: float = 1.0) -> SleeveResult:
     """Run the validated low-vol baseline for the latest date (variant 1)."""
     cfg = ExperimentConfig(name="paper_v1")
     cfg.data.universe = list(universe or BROAD_UNIVERSE)
@@ -63,7 +64,9 @@ def build_validated_sleeve(end: str = "2026-06-20",
     risk_on = bool(reg["risk_on"].reindex([last_date]).fillna(0).iloc[0])
 
     eng = DecisionEngine(max_weight=STOCK_POSITION_CAP, top_quantile=cfg.backtest.top_quantile)
-    decisions = eng.decide(scores, regime_risk_on=risk_on, governor_exposure=1.0,
+    # hard-risk governor multiplier (drawdown / daily-loss / 3-loss freeze)
+    decisions = eng.decide(scores, regime_risk_on=risk_on,
+                           governor_exposure=1.0 * float(risk_gov_mult),
                            sources="price+volatility (validated), 2-state regime")
 
     raw = pd.Series({d.asset: d.target_weight for d in decisions if d.target_weight > 0})

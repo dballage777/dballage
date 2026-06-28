@@ -90,7 +90,10 @@ def build_full_system(end: str = "2026-06-20",
                       stock_universe: Optional[List[str]] = None,
                       crypto_universe: Optional[List[str]] = None,
                       log_path: Optional[str] = None,
-                      read_log_path: Optional[str] = None) -> FullSystemResult:
+                      read_log_path: Optional[str] = None,
+                      stock_gov_mult: float = 1.0,
+                      crypto_gov_mult: float = 1.0,
+                      system_gov_mult: float = 1.0) -> FullSystemResult:
     """Run both sleeves, apply the learning loop, and combine under the GOAL
     capital structure (stocks <= 70% + crypto <= 30%, remainder CASH).
 
@@ -98,16 +101,21 @@ def build_full_system(end: str = "2026-06-20",
     an existing ledger *without* writing to it (the runner does its own
     realized-return logging). If omitted, ``log_path`` is used for both.
     """
-    stock = build_stock_sleeve(end=end, universe=stock_universe, log_path=None)
-    crypto = build_crypto_sleeve(end=end, universe=crypto_universe, log_path=None)
+    # per-book hard-risk governor multipliers (drawdown / daily-loss / 3-loss)
+    stock = build_stock_sleeve(end=end, universe=stock_universe, log_path=None,
+                               risk_gov_mult=stock_gov_mult)
+    crypto = build_crypto_sleeve(end=end, universe=crypto_universe, log_path=None,
+                                 risk_gov_mult=crypto_gov_mult)
 
     learn_weights, mult, learning_active = _learning_multipliers(read_log_path or log_path)
 
+    # system_gov_mult is the governor on the COMBINED book (full_system's own NAV):
+    # 0.0 forces the whole portfolio to cash regardless of the per-book books.
     combined: Dict[str, float] = {}
     for a, w in stock.targets.items():
-        combined[a] = combined.get(a, 0.0) + w * mult[STOCK_SLEEVE]
+        combined[a] = combined.get(a, 0.0) + w * mult[STOCK_SLEEVE] * float(system_gov_mult)
     for a, w in crypto.targets.items():
-        combined[a] = combined.get(a, 0.0) + w * mult[CRYPTO_SLEEVE]
+        combined[a] = combined.get(a, 0.0) + w * mult[CRYPTO_SLEEVE] * float(system_gov_mult)
     combined = {k: float(v) for k, v in combined.items() if v > 0}
 
     # latest date across the two books (they may differ by a day on real data)

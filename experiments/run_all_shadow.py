@@ -42,6 +42,7 @@ from v12.strategies.crypto_sleeve import SLEEVE_NAME as V3
 from v12.strategies.full_system import SYSTEM_SLEEVE as V4
 from v12.execution import DecisionEngine
 from v12.execution.ledger import ShadowLedger
+from v12.risk.governor import governor_exposure_from_returns
 from v12.utils import get_logger
 
 log = get_logger("shadow")
@@ -63,6 +64,24 @@ def _prev_rows(path: str):
         tgt = {d["asset"]: d.get("target_weight", 0.0) for d in r.get("decisions", [])
                if d.get("target_weight", 0.0) > 0}
         out[r["sleeve"]] = (r["date"], tgt)
+    return out
+
+
+def _sleeve_return_history(path: str):
+    """Per-sleeve ordered list of realized day_returns from the ledger."""
+    out = {}
+    if not os.path.exists(path):
+        return out
+    rows = []
+    for line in open(path):
+        line = line.strip()
+        if line:
+            rows.append(json.loads(line))
+    rows.sort(key=lambda r: r.get("date", ""))
+    for r in rows:
+        dr = r.get("day_return")
+        if dr is not None:
+            out.setdefault(r["sleeve"], []).append(float(dr))
     return out
 
 
@@ -104,11 +123,21 @@ def main():
     # previous decisions (for realized-return attribution) BEFORE we write new rows
     prev = _prev_rows(args.log)
 
+    # ---- live hard-risk governor: replay each sleeve's realized-return history
+    # (drawdown kill-switch / daily-loss stop / 3-consecutive-loss freeze). 0.0 =>
+    # circuit-breaker active => that sleeve goes to cash today. ----
+    hist = _sleeve_return_history(args.log)
+    gov = {name: governor_exposure_from_returns(hist.get(name, []))
+           for name in (V1, V2, V3, V4)}
+
     # build everything; full_system reads prior performance for the learning loop
     # but does NOT write (we do the realized-return logging here)
     sysres = build_full_system(end=end, stock_universe=stocks, crypto_universe=crypto,
-                               read_log_path=args.log, log_path=None)
-    v1 = build_validated_sleeve(end=end, universe=stocks, log_path=None)
+                               read_log_path=args.log, log_path=None,
+                               stock_gov_mult=gov[V2][0], crypto_gov_mult=gov[V3][0],
+                               system_gov_mult=gov[V4][0])
+    v1 = build_validated_sleeve(end=end, universe=stocks, log_path=None,
+                                risk_gov_mult=gov[V1][0])
 
     # price panels for realized-return lookup (cached from the builds above)
     scfg = ExperimentConfig(name="rr_s"); scfg.data.universe = stocks
@@ -150,12 +179,16 @@ def main():
             day_ret = None                       # already have this date — skip, no dup
             summary["skipped"] += 1
         perf = led.rolling_performance(name)
+        gov_exp, gov_reason = gov.get(name, (1.0, "ok"))
         summary["sleeves"][name] = {
             "regime": regime, "exposure": round(float(expo), 4),
             "n_positions": int(sum(1 for w in targets.values() if w > 0)),
             "day_return": day_ret, "logged": is_new, "roll_sharpe": perf.get("sharpe"),
             "roll_cum": perf.get("cum_return"), "n_days": perf.get("n_days", 0),
+            "risk_governor": ("ACTIVE: " + gov_reason) if gov_exp == 0.0 else "ok",
         }
+        if gov_exp == 0.0:
+            log.info("%s: hard-risk governor ACTIVE (%s) -> forced to CASH.", name, gov_reason)
     if summary["skipped"]:
         log.info("%d sleeve(s) already logged for their latest date — skipped (idempotent).",
                  summary["skipped"])
