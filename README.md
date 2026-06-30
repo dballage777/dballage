@@ -180,4 +180,4 @@ money-weighted account where **SPY gets the identical contribution schedule**.
 - [ ] Fundamentals / alt-data features (raise the technical-only IC ceiling).
 - [ ] Alpaca paper-trading adapter wired to the DeploymentAgent gate.
 - [ ] Replace rule-based agent hooks (`# LLM-HOOK`) with LLM-driven research.
-- [ ] vectorbt cross-check of the in-house backtest engine.
+- [x] vectorbt cross-check of the in-house backtest engine (`experiments/vectorbt_crosscheck.py`).
