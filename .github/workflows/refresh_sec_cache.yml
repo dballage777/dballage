@@ -1,0 +1,47 @@
+name: Weekly SEC Cache Refresh
+
+# Keeps the committed SEC cache (data_cache/fundamentals.json + insider.json)
+# current so variant 5 (full_system_max) uses fresh fundamentals + insider. Runs
+# weekly; safe by design — only overwrites the cache if the download produced data.
+on:
+  schedule:
+    - cron: "0 6 * * 0"          # Sundays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sec-cache-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install core deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas scipy scikit-learn pyarrow
+      - name: Refresh SEC cache (safe swap)
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'Dballage dballage@nafcs.org' }}
+        run: python -m experiments.refresh_sec_cache
+      - name: Commit refreshed cache
+        run: |
+          git config user.name  "shadow-bot"
+          git config user.email "actions@github.com"
+          git add -f data_cache/fundamentals.json data_cache/insider.json
+          if git diff --cached --quiet; then
+            echo "SEC cache unchanged — nothing to commit."
+          else
+            git commit -m "data: weekly SEC cache refresh $(date -u +%Y-%m-%d) [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
