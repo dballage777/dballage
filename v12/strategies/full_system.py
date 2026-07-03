@@ -93,7 +93,10 @@ def build_full_system(end: str = "2026-06-20",
                       read_log_path: Optional[str] = None,
                       stock_gov_mult: float = 1.0,
                       crypto_gov_mult: float = 1.0,
-                      system_gov_mult: float = 1.0) -> FullSystemResult:
+                      system_gov_mult: float = 1.0,
+                      use_fundamentals: bool = False,
+                      use_insider: bool = False,
+                      reuse_crypto: Optional[CryptoSleeveResult] = None) -> FullSystemResult:
     """Run both sleeves, apply the learning loop, and combine under the GOAL
     capital structure (stocks <= 70% + crypto <= 30%, remainder CASH).
 
@@ -102,10 +105,14 @@ def build_full_system(end: str = "2026-06-20",
     realized-return logging). If omitted, ``log_path`` is used for both.
     """
     # per-book hard-risk governor multipliers (drawdown / daily-loss / 3-loss)
+    # use_fundamentals/use_insider add the SEC data sources (variant 5, maximal).
     stock = build_stock_sleeve(end=end, universe=stock_universe, log_path=None,
-                               risk_gov_mult=stock_gov_mult)
-    crypto = build_crypto_sleeve(end=end, universe=crypto_universe, log_path=None,
-                                 risk_gov_mult=crypto_gov_mult)
+                               risk_gov_mult=stock_gov_mult,
+                               use_fundamentals=use_fundamentals, use_insider=use_insider)
+    # crypto is identical across variant 4 and 5 (no fundamentals/insider) — reuse
+    # a precomputed result if given to avoid rebuilding the whole crypto pipeline.
+    crypto = reuse_crypto if reuse_crypto is not None else build_crypto_sleeve(
+        end=end, universe=crypto_universe, log_path=None, risk_gov_mult=crypto_gov_mult)
 
     learn_weights, mult, learning_active = _learning_multipliers(read_log_path or log_path)
 

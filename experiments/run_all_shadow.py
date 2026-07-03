@@ -39,8 +39,10 @@ from v12.strategies import build_full_system, build_validated_sleeve, all_decisi
 from v12.strategies.validated_sleeve import SLEEVE_NAME as V1
 from v12.strategies.stock_sleeve import SLEEVE_NAME as V2
 from v12.strategies.crypto_sleeve import SLEEVE_NAME as V3
-from v12.strategies.full_system import SYSTEM_SLEEVE as V4
+from v12.strategies.full_system import SYSTEM_SLEEVE as V4, all_decisions as _alldec
 from v12.execution import DecisionEngine
+
+V5 = "full_system_max"        # variant 5: full system + all AVAILABLE SEC data sources
 from v12.execution.ledger import ShadowLedger
 from v12.risk.governor import governor_exposure_from_returns
 from v12.utils import get_logger
@@ -114,8 +116,13 @@ def main():
     p.add_argument("--end", default=None, help="data end date; defaults to today (live)")
     p.add_argument("--log", default="results/shadow_ledger.jsonl")
     p.add_argument("--quick", action="store_true", help="small universes for a fast smoke run")
+    p.add_argument("--no-max", action="store_true", help="skip variant 5 (full_system_max)")
+    p.add_argument("--with-insider", action="store_true",
+                   help="variant 5 also pulls SEC insider data (heavy; best in Codespace)")
     args = p.parse_args()
     end = args.end or _dt.date.today().isoformat()      # live: advance with the calendar
+    want_v5 = not args.no_max
+    v5_insider = args.with_insider or os.environ.get("SHADOW_V5_INSIDER") == "1"
 
     stocks = SMALL_STOCKS if args.quick else list(BROAD_UNIVERSE)
     crypto = SMALL_CRYPTO if args.quick else list(CRYPTO_UNIVERSE)
@@ -128,7 +135,7 @@ def main():
     # circuit-breaker active => that sleeve goes to cash today. ----
     hist = _sleeve_return_history(args.log)
     gov = {name: governor_exposure_from_returns(hist.get(name, []))
-           for name in (V1, V2, V3, V4)}
+           for name in (V1, V2, V3, V4, V5)}
 
     # build everything; full_system reads prior performance for the learning loop
     # but does NOT write (we do the realized-return logging here)
@@ -138,6 +145,17 @@ def main():
                                system_gov_mult=gov[V4][0])
     v1 = build_validated_sleeve(end=end, universe=stocks, log_path=None,
                                 risk_gov_mult=gov[V1][0])
+
+    # ---- variant 5: full system + ALL available SEC data (fundamentals [+insider]).
+    # reuses variant 4's crypto book (identical) and only rebuilds the stock book
+    # with the extra data. Degrades gracefully if SEC data can't be fetched. ----
+    v5 = None
+    if want_v5:
+        v5 = build_full_system(end=end, stock_universe=stocks, crypto_universe=crypto,
+                               read_log_path=args.log, log_path=None,
+                               system_gov_mult=gov[V5][0],
+                               use_fundamentals=True, use_insider=v5_insider,
+                               reuse_crypto=sysres.crypto)
 
     # price panels for realized-return lookup (cached from the builds above)
     scfg = ExperimentConfig(name="rr_s"); scfg.data.universe = stocks
@@ -159,6 +177,10 @@ def main():
         (V4, sysres.date, sysres.combined_targets, v4_dec,
          f"stk:{sysres.stock.regime}/cry:{sysres.crypto.regime}", sysres.total_exposure),
     ]
+    if v5 is not None:
+        v5_dec = [d for d in _alldec(v5) if d.asset in v5.combined_targets]
+        table.append((V5, v5.date, v5.combined_targets, v5_dec,
+                      f"stk:{v5.stock.regime}/cry:{v5.crypto.regime}", v5.total_exposure))
 
     led = ShadowLedger(args.log)
     summary = {"date": f"{sysres.date:%Y-%m-%d}", "learning_active": sysres.learning_active,

@@ -46,6 +46,9 @@ from ..strategies.blend import blend_horizons
 from ..portfolio.sleeves import Sleeve, SleeveManager
 from ..portfolio.microcap import enforce_microcap_caps
 from ..execution import DecisionEngine, Decision
+from ..utils import get_logger
+
+log = get_logger("stock_sleeve")
 
 SLEEVE_NAME = "equity_full_goal"
 
@@ -80,14 +83,17 @@ class SleeveResult:
 
 
 def _score_horizon(data, cfg: ExperimentConfig, horizon: int,
-                   feats: Optional[List[str]]) -> tuple[pd.Series, List[str], pd.Timestamp]:
+                   feats: Optional[List[str]], fundamentals=None, insider=None,
+                   keep_families=("volatility", "cross_sectional")
+                   ) -> tuple[pd.Series, List[str], pd.Timestamp]:
     """Train the validated model for one horizon and score the latest date."""
     cfg.features.target_horizon = horizon
     cfg.__post_init__()
-    panel, all_feats = build_dataset(data, cfg.features, cfg.data, keep_unlabeled=True)
+    panel, all_feats = build_dataset(data, cfg.features, cfg.data,
+                                     fundamentals=fundamentals, insider=insider,
+                                     keep_unlabeled=True)
     if feats is None:
-        feats = select_features(panel, all_feats, ["volatility", "cross_sectional"],
-                                prune_corr=0.9)
+        feats = select_features(panel, all_feats, list(keep_families), prune_corr=0.9)
     panel = panel[feats + ["target"]]
     labelled = panel.dropna(subset=["target"])
     model = build_model("elasticnet", cfg.models.random_state)
@@ -101,8 +107,15 @@ def _score_horizon(data, cfg: ExperimentConfig, horizon: int,
 def build_stock_sleeve(end: str = "2026-06-20",
                        universe: Optional[List[str]] = None,
                        log_path: Optional[str] = None,
-                       risk_gov_mult: float = 1.0) -> SleeveResult:
+                       risk_gov_mult: float = 1.0,
+                       use_fundamentals: bool = False,
+                       use_insider: bool = False) -> SleeveResult:
     """Run the full GOAL-conditioned stock sleeve for the latest date.
+
+    ``use_fundamentals`` / ``use_insider`` add the SEC data sources (variant 5,
+    "maximal data"). They need network + SEC_USER_AGENT; if either fails to load
+    the sleeve degrades gracefully to price/volume and records the gap in
+    ``sources`` — nothing is faked.
 
     Returns a :class:`SleeveResult` with the GOAL-required per-decision output
     and the capped target weights. If ``log_path`` is given, appends the run to
@@ -115,12 +128,46 @@ def build_stock_sleeve(end: str = "2026-06-20",
 
     data = load_prices(cfg.data)
 
+    # ---- optional SEC data sources (variant 5) — graceful, never fabricated ----
+    import os as _os
+    ua = cfg.data.sec_user_agent or _os.environ.get("SEC_USER_AGENT") or None
+    fundamentals = insider = None
+    families = ["volatility", "cross_sectional"]
+    used, missing = [], []
+    def _has_data(obj):
+        return obj is not None and bool(getattr(obj, "data", None))
+
+    if use_fundamentals:
+        try:
+            from ..data.fundamentals import load_fundamentals
+            fundamentals = load_fundamentals(cfg.data.universe, cfg.data.cache_dir, ua)
+        except Exception as e:                       # network/UA/parse failure
+            fundamentals = None; log.warning("fundamentals load error: %s", e)
+        if _has_data(fundamentals):                  # only claim it if data actually loaded
+            cfg.features.use_fundamentals = True
+            families.append("fundamental"); used.append("fundamentals")
+        else:
+            fundamentals = None; missing.append("fundamentals")
+    if use_insider:
+        try:
+            from ..data.insider import load_insider
+            insider = load_insider(cfg.data.universe, cfg.data.cache_dir, ua,
+                                   start_year=int(cfg.data.start[:4]), end_year=int(end[:4]))
+        except Exception as e:
+            insider = None; log.warning("insider load error: %s", e)
+        if _has_data(insider):
+            cfg.features.use_insider = True
+            families.append("insider"); used.append("insider")
+        else:
+            insider = None; missing.append("insider")
+
     # ---- multi-horizon blend (long 60d + medium 20d) ----
     scores_by_h: Dict[int, pd.Series] = {}
     feats = None
     last_date = None
     for h in HORIZON_WEIGHTS:
-        s, feats, last_date = _score_horizon(data, cfg, h, feats)
+        s, feats, last_date = _score_horizon(data, cfg, h, feats, fundamentals=fundamentals,
+                                             insider=insider, keep_families=families)
         scores_by_h[h] = s
     scores = blend_horizons(scores_by_h, HORIZON_WEIGHTS)
 
@@ -144,12 +191,16 @@ def build_stock_sleeve(end: str = "2026-06-20",
     recent = data.close[cfg.data.universe].pct_change().dropna().tail(60)
 
     # ---- governed decisions (EV gate, no-trade, graduated sizing, caps) ----
+    src = "price+volatility, 6-regime, multi-horizon"
+    if used:
+        src += " +" + "+".join(used)
+    if missing:
+        src += " (UNAVAILABLE: " + ",".join(missing) + ")"
     eng = DecisionEngine(max_weight=STOCK_POSITION_CAP,
                          top_quantile=cfg.backtest.top_quantile)
     decisions = eng.decide(scores, regime_risk_on=(regime_exposure > 0),
                            governor_exposure=governor_exposure,
-                           recent_returns=recent,
-                           sources="price+volatility (validated), 6-regime, multi-horizon")
+                           recent_returns=recent, sources=src)
     corr_flag = eng._correlation_overload(
         set(scores.sort_values(ascending=False).index[:max(int(len(scores) * 0.30), 1)]),
         recent, 0.80)
@@ -166,7 +217,8 @@ def build_stock_sleeve(end: str = "2026-06-20",
 
     result = SleeveResult(date=last_date, regime=regime, regime_exposure=regime_exposure,
                           kelly_mult=kelly_mult, governor_exposure=governor_exposure,
-                          corr_flag=corr_flag, decisions=decisions, targets=targets)
+                          corr_flag=corr_flag, decisions=decisions, targets=targets,
+                          sources=src)
 
     if log_path is not None:
         from ..execution.ledger import ShadowLedger

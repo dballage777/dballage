@@ -17,7 +17,8 @@ import numpy as np
 import pandas as pd
 
 # canonical display order (variant 1 -> 4)
-SLEEVE_ORDER = ["equity_validated", "equity_full_goal", "crypto_full_goal", "full_system"]
+SLEEVE_ORDER = ["equity_validated", "equity_full_goal", "crypto_full_goal",
+                "full_system", "full_system_max"]
 
 
 def _realized(df: pd.DataFrame) -> pd.DataFrame:

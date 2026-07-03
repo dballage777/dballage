@@ -1,11 +1,11 @@
 # Paper Testing — the 90–180 Day Shadow Horse-Race
 
 This is how we **truly test the original idea** without risking a dollar: run all
-four variants forward, every day, side by side, and let *honest realized paper
+five variants forward, every day, side by side, and let *honest realized paper
 performance* — not a re-optimized backtest — decide which (if any) earns
 promotion to live paper trading.
 
-## The four horses
+## The five horses
 
 | Sleeve | What it is |
 |---|---|
@@ -13,11 +13,22 @@ promotion to live paper trading.
 | `equity_full_goal` | Stocks + all GOAL conditions (variant 2) |
 | `crypto_full_goal` | Crypto + all GOAL conditions (variant 3) |
 | `full_system` | Variant 2 + 3 + learning loop (variant 4) — the full GOAL engine |
+| `full_system_max` | Variant 4 **+ every available SEC data source** (fundamentals [+insider]) — variant 5, the maximal-data arm |
 
 The whole point of the race: does the heavier GOAL machinery (6-regime exposure,
 multi-horizon blend, Kelly, crypto, learning loop) actually **beat the simple
 validated baseline** in honest forward paper? If it doesn't, we keep the simpler
 thing. That is the discipline.
+
+**Variant 5 caveat (honesty):** it adds the SEC data sources our *backtest ablation
+showed HURT* out-of-sample — included at the user's request to test that finding
+*forward* too. It uses every data source that has real ingestion code (price/volume
++ fundamentals + insider); the ~100 community/news sources in the GOAL spec have no
+feeds and are **not** ingested (each decision's `sources` field records exactly what
+was used, and flags anything UNAVAILABLE). Variant 5 degrades gracefully to
+price/volume when SEC data can't be fetched. Insider is heavy (bulk quarterly
+downloads) so it is **off by default** in the daily Action; enable it with
+`--with-insider` (or `SHADOW_V5_INSIDER=1`) when running in Codespaces.
 
 ## Run it
 
