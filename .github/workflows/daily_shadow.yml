@@ -38,6 +38,9 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'Dballage dballage@nafcs.org' }}
         run: |
           mkdir -p paper/reports
+          # variant 5 uses insider too — but only if the committed SEC cache is
+          # present, so the Action never re-downloads the heavy bulk data / times out
+          if [ -f data_cache/insider.json ]; then export SHADOW_V5_INSIDER=1; fi
           python -m experiments.run_all_shadow --log paper/shadow_ledger.jsonl
           python -m experiments.daily_report --out paper/reports || true
           python -m experiments.standings --log paper/shadow_ledger.jsonl --out paper/reports || true

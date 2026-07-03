@@ -7,7 +7,12 @@ venv/
 
 # generated artifacts (reproducible from code)
 results/
-data_cache/
+data_cache/*
+# ...but track the SEC caches so the daily Action can reuse them for variant 5
+# (fundamentals + insider) without re-downloading. Refresh periodically from a
+# Codespace run. These are point-in-time snapshots, not live feeds.
+!data_cache/fundamentals.json
+!data_cache/insider.json
 *.parquet
 *.log
 .pytest_cache/
