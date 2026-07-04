@@ -1,11 +1,11 @@
 # Paper Testing — the 90–180 Day Shadow Horse-Race
 
 This is how we **truly test the original idea** without risking a dollar: run all
-five variants forward, every day, side by side, and let *honest realized paper
+six variants forward, every day, side by side, and let *honest realized paper
 performance* — not a re-optimized backtest — decide which (if any) earns
 promotion to live paper trading.
 
-## The five horses
+## The six horses (+ the metals book)
 
 | Sleeve | What it is |
 |---|---|
@@ -14,6 +14,8 @@ promotion to live paper trading.
 | `crypto_full_goal` | Crypto + all GOAL conditions (variant 3) |
 | `full_system` | Variant 2 + 3 + learning loop (variant 4) — the full GOAL engine |
 | `full_system_max` | Variant 4 **+ every available SEC data source** (fundamentals [+insider]) — variant 5, the maximal-data arm |
+| `metals_full_goal` | The precious-metals book (GLD/IAU/SLV/PPLT/PALL/GDX) — a component sleeve |
+| `full_system_v6` | Variant 5 **+ the metals book**, under the **revised caps** (stocks ≤65% / metals ≤15% / crypto ≤20%) — variant 6 |
 
 The whole point of the race: does the heavier GOAL machinery (6-regime exposure,
 multi-horizon blend, Kelly, crypto, learning loop) actually **beat the simple
@@ -29,6 +31,15 @@ was used, and flags anything UNAVAILABLE). Variant 5 degrades gracefully to
 price/volume when SEC data can't be fetched. Insider is heavy (bulk quarterly
 downloads) so it is **off by default** in the daily Action; enable it with
 `--with-insider` (or `SHADOW_V5_INSIDER=1`) when running in Codespaces.
+
+**Variant 6 (`full_system_v6`):** exactly variant 5 (full system + SEC data) **plus
+a precious-metals sleeve**, under the revised capital structure (stocks ≤65% +
+metals ≤15% + crypto ≤20%, cash the remainder). The learning loop now spans three
+books (stocks, metals, crypto). Gold is an evidence-backed defensive diversifier
+(uncorrelated/negative vs equities in crises, stronger crisis hedge than crypto);
+this variant tests forward whether adding it improves the risk-adjusted profile.
+It runs by default; skip with `--no-metals`. **Fine art was evaluated and rejected**
+(selection-bias-corrected optimal ≈ 0%, illiquid, incompatible with the engine).
 
 ## Run it
 

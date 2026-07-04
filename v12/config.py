@@ -44,6 +44,12 @@ CRYPTO_UNIVERSE: List[str] = [
     "AVAX-USD", "DOGE-USD", "LINK-USD", "DOT-USD", "LTC-USD", "MATIC-USD",
 ]
 
+# Precious-metals universe (SPEC 2026-06-30: gold core, silver secondary, plus
+# platinum/palladium/miners for cross-sectional selection). Liquid ETFs only.
+# GLD (gold) is the regime benchmark for the metals book.
+METALS_BENCHMARK = "GLD"
+METALS_UNIVERSE: List[str] = ["GLD", "IAU", "SLV", "PPLT", "PALL", "GDX"]
+
 
 @dataclass
 class DataConfig:

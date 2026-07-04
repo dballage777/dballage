@@ -18,7 +18,7 @@ import pandas as pd
 
 # canonical display order (variant 1 -> 4)
 SLEEVE_ORDER = ["equity_validated", "equity_full_goal", "crypto_full_goal",
-                "full_system", "full_system_max"]
+                "full_system", "full_system_max", "metals_full_goal", "full_system_v6"]
 
 
 def _realized(df: pd.DataFrame) -> pd.DataFrame:
