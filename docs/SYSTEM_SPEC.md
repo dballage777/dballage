@@ -17,13 +17,28 @@ minimizing drawdowns, tail risk, overfitting, liquidity failure, regime collapse
 
 ## 1. Capital structure (dynamic, not fixed)
 - 0–100% **Cash** (default safe state; never required to be fully invested)
-- 0–70% **Stocks**
-- 0–30% **Crypto**
+- 0–65% **Stocks**
+- 0–15% **Precious metals** (gold core, silver secondary)
+- 0–20% **Crypto**
+
+> **Revision note (2026-06-30):** precious metals added as a defensive
+> diversifier. Rationale (evidence-based): gold is uncorrelated/negatively
+> correlated with equities in crises, improves risk-adjusted returns at the 5–15%
+> range, and is a **stronger crisis hedge than crypto** (which behaves like a
+> risk asset) — so its allocation is taken mostly from crypto (30→20). **Fine art
+> was evaluated and rejected** (selection-bias-corrected optimal allocation ≈ 0%,
+> 15–20% transaction costs, illiquid, incompatible with a daily systematic
+> engine). **Status: spec only — the metals sleeve is NOT yet built;** it must
+> pass the forward test + validation gate before earning live weight, like every
+> other signal.
 
 ## 2. Universe
 **Stocks:** 25–40 liquid equities/ETFs.
 - Core: SPY, QQQ, AAPL, MSFT, NVDA, AMZN, META, TSLA
 - Secondary: sector ETFs + mid caps
+
+**Precious metals:** liquid ETFs only.
+- Core: GLD / IAU (gold) · Secondary: SLV (silver)
 
 **Crypto:** 5–12 assets max.
 - Core: BTC, ETH · Secondary: large-cap alts only
@@ -51,7 +66,8 @@ Do not trade if: EV ≤ 0 · liquidity insufficient · spread too wide · confid
 
 ## 7. Position sizing (risk-capped Kelly)
 - Fractional Kelly, **max 25%** of full Kelly
-- Hard caps: **Stocks 5–8%** per position · **Crypto 8–12%** per position
+- Hard caps: **Stocks 5–8%** per position · **Precious metals 5–10%** per position
+  · **Crypto 8–12%** per position
 - Adjust by volatility regime
 
 ## 8. Risk management (hard rules)

@@ -37,6 +37,7 @@ implement every **feasible, non-counterproductive** attribute, and explicitly
 | 24 | Community (Reddit/HN/forums) | ⛔ partial | scraping/APIs; mostly network-blocked; unproven |
 | 25 | Source weighting (30/25/10/10/20/5) + self-adjust | ❌ | no multi-source fusion live |
 | 26 | Narrative lifecycle system | ❌ | unbuilt |
+| 27 | Precious-metals sleeve (gold 0–15%, via GLD/IAU/SLV) | 📝 | **spec'd 2026-06-30, build HELD**; evidence-backed defensive diversifier, feasible (ETFs), pending forward-test/gate before live weight. Fine art evaluated & **rejected** (selection-bias-corrected optimal ≈ 0%). See SYSTEM_SPEC §1. |
 
 ## What this means
 - **Implemented & validated (the core engine):** EV gate, 6-regime, risk
