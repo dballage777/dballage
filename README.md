@@ -65,6 +65,14 @@ checked, cost- and Monte-Carlo-stressed. The dollar-neutral long-short probe is 
 > ~18-month window mislabeled as the full 8 years. The honest full-sample number
 > is 0.74 (a tie with SPY). Corrected on real-data reproduction.*
 
+### 📘 New: plain-English explainer (no code or finance background needed)
+
+**[`docs/assets/How_It_Works_Explainer.pdf`](docs/assets/How_It_Works_Explainer.pdf)** —
+a non-technical walkthrough: our backtest results **vs. the S&P 500, USMV, and
+SPLV** (a clear, highlighted comparison), each of the six live paper tests (how
+it splits money, when it stays in cash, how often it checks), and honestly how
+this differs from investing yourself or paying a company.
+
 📄 Full write-up: [`docs/BACKTEST_SUMMARY.md`](docs/BACKTEST_SUMMARY.md) (plain-English + technical) ·
 📊 [`docs/backtest_metrics.csv`](docs/backtest_metrics.csv) (Google-Sheets-ready) ·
 📋 design spec: [`docs/SYSTEM_SPEC.md`](docs/SYSTEM_SPEC.md) ·
