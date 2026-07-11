@@ -23,7 +23,7 @@ SOURCE_STATUS: Dict[str, str] = {
     "sec_form4_insider": "shadow_only",         # ablation: reduces OOS IC
     "sec_13f": "not_implemented",
     "congress_trades": "not_implemented",
-    "macro_fred": "not_implemented",
+    "macro_fred": "shadow_only",   # gate-tested (macro-regime overlay): HURT Sharpe on real FRED data
     "etf_holdings": "not_implemented",
     "cftc_cot": "not_implemented",
     "options_flow": "infeasible",
@@ -61,7 +61,7 @@ SOURCE_REGISTRY: Dict[str, SourceSpec] = {
     # GitHub — 10%
     "github_dev_activity": SourceSpec("github", 0.10, "every 15 min (intended)", "not_implemented"),
     # Macro / economic — 10%
-    "macro_fred":          SourceSpec("macro", 0.06, "hourly", "not_implemented"),
+    "macro_fred":          SourceSpec("macro", 0.06, "hourly", "shadow_only"),   # macro-regime gate FAILED
     "cftc_cot":            SourceSpec("macro", 0.02, "weekly", "not_implemented"),
     "treasury_bls":        SourceSpec("macro", 0.02, "daily", "not_implemented"),
     # News — 5%

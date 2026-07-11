@@ -32,7 +32,7 @@ implement every **feasible, non-counterproductive** attribute, and explicitly
 | 19 | Microcap caps for crypto (≤5%/≤0.5%) | ❌ | with crypto |
 | 20 | Alt-data: SEC EDGAR (10-K/Q/8-K, Form 4, 13F/13D/13G) | 🟡 / ⚠️ | fundamentals + Form 4 built — **ablation showed they HURT OOS IC**, so pruned out |
 | 21 | Alt-data: congressional trades, options flow, ETF holdings, COT | ❌ | not ingested |
-| 22 | Macro (FRED/BLS/Fed) | ❌ | not ingested |
+| 22 | Macro (FRED/BLS/Fed) | ⚠️ | **gate-tested 2026-07: FAILED** — macro risk-off overlay on the regime gate HURT Sharpe (0.91→0.78) on real FRED data for a trivial drawdown gain. Loader in `v12/data/macro.py`; kept shadow-only (see `experiments/validate_macro_regime.py`). |
 | 23 | News (Reuters/Bloomberg/WSJ/FT) | ⛔ | paid feeds / licensing; no access |
 | 24 | Community (Reddit/HN/forums) | ⛔ partial | scraping/APIs; mostly network-blocked; unproven |
 | 25 | Source weighting (30/25/10/10/20/5) + self-adjust | ❌ | no multi-source fusion live |
