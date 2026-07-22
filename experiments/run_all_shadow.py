@@ -49,9 +49,10 @@ from v12.strategies.bonds_sleeve import build_bonds_sleeve, SLEEVE_NAME as V7
 from v12.strategies.full_system_v6 import (build_full_system_v6, all_decisions_v6,
                                            SYSTEM6_SLEEVE as V6)
 from v12.config import METALS_UNIVERSE, METALS_BENCHMARK, BONDS_UNIVERSE, BONDS_BENCHMARK
-from v12.execution import DecisionEngine
+from v12.execution import DecisionEngine, Decision
 
 V5 = "full_system_max"        # variant 5: full system + all AVAILABLE SEC data sources
+MARKET_BENCH = "market_spy"   # passive SPY buy-and-hold — the "overall market" yardstick
 from v12.execution.ledger import ShadowLedger
 from v12.risk.governor import governor_exposure_from_returns
 from v12.utils import get_logger
@@ -197,7 +198,8 @@ def main():
                                 risk_gov_mult=gov[V7][0])
 
     # price panels for realized-return lookup (cached from the builds above)
-    scfg = ExperimentConfig(name="rr_s"); scfg.data.universe = stocks
+    scfg = ExperimentConfig(name="rr_s")
+    scfg.data.universe = list(stocks) + (["SPY"] if "SPY" not in stocks else [])  # +SPY for the market benchmark
     scfg.data.start, scfg.data.end = "2015-01-01", end
     ccfg = ExperimentConfig(name="rr_c"); ccfg.data.universe = crypto
     ccfg.data.benchmark = CRYPTO_BENCHMARK; ccfg.data.rs_refs = [CRYPTO_BENCHMARK]
@@ -216,9 +218,24 @@ def main():
     close = pd.concat(panels, axis=1)
     close = close.loc[:, ~close.columns.duplicated()]
 
+    # ---- passive market benchmark: 100% SPY, buy-and-hold, NEVER governed.
+    # Not a strategy — the yardstick every variant is measured against. Same
+    # realized-return machinery (weights held x actual SPY return over the gap). ----
+    bench_row = None
+    if "SPY" in close.columns and not close["SPY"].dropna().empty:
+        bench_date = pd.Timestamp(close["SPY"].dropna().index.max())
+        spy_dec = Decision(asset="SPY", action="BUY", ev_score=0.0, risk_status="LOW",
+                           confidence=100.0, target_weight=1.0,
+                           reasoning="passive buy-and-hold market benchmark",
+                           sources="SPY close (buy & hold)")
+        bench_row = (MARKET_BENCH, bench_date, {"SPY": 1.0}, [spy_dec], "buy&hold", 1.0)
+
     # uniform sleeve table: (name, date, targets, decisions, regime, exposure)
     v4_dec = [d for d in all_decisions(sysres) if d.asset in sysres.combined_targets]
-    table = [
+    table = []
+    if bench_row is not None:
+        table.append(bench_row)      # market benchmark first — the yardstick
+    table += [
         (V1, v1.date, v1.targets, v1.decisions, v1.regime, sum(v1.targets.values())),
         (V2, sysres.stock.date, sysres.stock.targets, sysres.stock.decisions,
          sysres.stock.regime, sum(sysres.stock.targets.values())),
