@@ -50,6 +50,14 @@ CRYPTO_UNIVERSE: List[str] = [
 METALS_BENCHMARK = "GLD"
 METALS_UNIVERSE: List[str] = ["GLD", "IAU", "SLV", "PPLT", "PALL", "GDX"]
 
+# Bonds universe (SPEC 2026-07-16: short/intermediate investment-grade core).
+# Liquid ETFs ONLY. Duration caveat — favor short/intermediate IG (SHY/IEF/BND/
+# AGG), keep TIP/LQD secondary, and long-duration (TLT) deliberately excluded
+# (2022's bond drawdown was duration risk). AGG (aggregate IG index) is the
+# regime benchmark for the bond book.
+BONDS_BENCHMARK = "AGG"
+BONDS_UNIVERSE: List[str] = ["AGG", "BND", "IEF", "SHY", "TIP", "LQD"]
+
 
 @dataclass
 class DataConfig:

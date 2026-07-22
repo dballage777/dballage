@@ -1,11 +1,11 @@
 # Paper Testing — the 90–180 Day Shadow Horse-Race
 
 This is how we **truly test the original idea** without risking a dollar: run all
-six variants forward, every day, side by side, and let *honest realized paper
+variants forward, every day, side by side, and let *honest realized paper
 performance* — not a re-optimized backtest — decide which (if any) earns
 promotion to live paper trading.
 
-## The six horses (+ the metals book)
+## The horses
 
 | Sleeve | What it is |
 |---|---|
@@ -16,6 +16,7 @@ promotion to live paper trading.
 | `full_system_max` | Variant 4 **+ every available SEC data source** (fundamentals [+insider]) — variant 5, the maximal-data arm |
 | `metals_full_goal` | The precious-metals book (GLD/IAU/SLV/PPLT/PALL/GDX) — a component sleeve |
 | `full_system_v6` | Variant 5 **+ the metals book**, under the **revised caps** (stocks ≤65% / metals ≤15% / crypto ≤20%) — variant 6 |
+| `bonds_full_goal` | The standalone IG fixed-income book (AGG/BND/IEF/SHY/TIP/LQD) — **variant 7** |
 
 The whole point of the race: does the heavier GOAL machinery (6-regime exposure,
 multi-horizon blend, Kelly, crypto, learning loop) actually **beat the simple
@@ -40,6 +41,17 @@ books (stocks, metals, crypto). Gold is an evidence-backed defensive diversifier
 this variant tests forward whether adding it improves the risk-adjusted profile.
 It runs by default; skip with `--no-metals`. **Fine art was evaluated and rejected**
 (selection-bias-corrected optimal ≈ 0%, illiquid, incompatible with the engine).
+
+**Variant 7 (`bonds_full_goal`):** a standalone investment-grade fixed-income book
+(AGG/BND/IEF/SHY/TIP/LQD), run like the metals book — its own row, its own realized-
+return track — under the revised capital structure (bonds ≤40%, per-position ≤20%).
+Bonds are evidence-backed ballast/income: the 60/40 case has re-strengthened (stock-
+bond correlation normalized to ~0.16), IG bonds have beaten cash by ~2%/yr, and they
+are a higher-yielding home for the idle defensive cash this system holds by design.
+**Duration caveat:** the universe is short/intermediate IG (long-duration TLT is
+deliberately excluded — 2022's bond drawdown was duration risk). Owning bonds as an
+*asset* is distinct from the macro/bond *signal* (yield-curve/NFCI overlay) that
+failed the validation gate. It runs by default; skip with `--no-bonds`.
 
 ## Run it
 
