@@ -17,9 +17,24 @@ minimizing drawdowns, tail risk, overfitting, liquidity failure, regime collapse
 
 ## 1. Capital structure (dynamic, not fixed)
 - 0–100% **Cash** (default safe state; never required to be fully invested)
-- 0–65% **Stocks**
+- 0–40% **Bonds** (short/intermediate investment-grade core)
+- 0–60% **Stocks**
 - 0–15% **Precious metals** (gold core, silver secondary)
-- 0–20% **Crypto**
+- 0–15% **Crypto**
+
+> **Revision note (2026-07-16):** bonds added as the primary income/ballast
+> sleeve. Rationale (evidence-based): the 60/40 case has strengthened
+> (stock-bond correlation normalized from +0.67 in 2022 to ~0.16 by late 2025)
+> and higher yields (~4-4.5%) provide real income + a cushion; IG bonds have
+> beaten cash by ~2%/yr over multi-year holds. Crucially for THIS system — which
+> sits in cash a lot by design — bonds are a higher-yielding place to park idle
+> defensive capital while keeping the defensive stance. Bond allocation is carved
+> mostly from the perpetual-cash default, plus a trim of stocks (65→60) and
+> crypto (20→15). **Duration caveat:** favor short/intermediate IG (IEF/SHY/BND/
+> AGG/TIP), limit long-duration (TLT) — 2022's bond crash was duration risk.
+> **Status: spec only — the bond sleeve is NOT yet built;** it must pass the
+> forward test + validation gate before earning live weight (bonds-as-held-asset
+> is distinct from the macro-signal that failed the gate).
 
 > **Revision note (2026-06-30):** precious metals added as a defensive
 > diversifier. Rationale (evidence-based): gold is uncorrelated/negatively
@@ -36,6 +51,9 @@ minimizing drawdowns, tail risk, overfitting, liquidity failure, regime collapse
 **Stocks:** 25–40 liquid equities/ETFs.
 - Core: SPY, QQQ, AAPL, MSFT, NVDA, AMZN, META, TSLA
 - Secondary: sector ETFs + mid caps
+
+**Bonds:** liquid ETFs only (short/intermediate IG core).
+- Core: BND / AGG (aggregate) · IEF (7-10y Tsy) · SHY (1-3y) · Secondary: TIP, LQD
 
 **Precious metals:** liquid ETFs only.
 - Core: GLD / IAU (gold) · Secondary: SLV (silver)
@@ -66,8 +84,9 @@ Do not trade if: EV ≤ 0 · liquidity insufficient · spread too wide · confid
 
 ## 7. Position sizing (risk-capped Kelly)
 - Fractional Kelly, **max 25%** of full Kelly
-- Hard caps: **Stocks 5–8%** per position · **Precious metals 5–10%** per position
-  · **Crypto 8–12%** per position
+- Hard caps: **Stocks 5–8%** per position · **Bonds 10–20%** per position (few,
+  highly-liquid ETFs) · **Precious metals 5–10%** per position · **Crypto 8–12%**
+  per position
 - Adjust by volatility regime
 
 ## 8. Risk management (hard rules)

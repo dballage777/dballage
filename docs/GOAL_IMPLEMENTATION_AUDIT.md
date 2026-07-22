@@ -38,6 +38,7 @@ implement every **feasible, non-counterproductive** attribute, and explicitly
 | 25 | Source weighting (30/25/10/10/20/5) + self-adjust | ❌ | no multi-source fusion live |
 | 26 | Narrative lifecycle system | ❌ | unbuilt |
 | 27 | Precious-metals sleeve (gold 0–15%, via GLD/IAU/SLV) | 📝 | **spec'd 2026-06-30, build HELD**; evidence-backed defensive diversifier, feasible (ETFs), pending forward-test/gate before live weight. Fine art evaluated & **rejected** (selection-bias-corrected optimal ≈ 0%). See SYSTEM_SPEC §1. |
+| 28 | Bonds sleeve (0–40%, short/intermediate IG via BND/AGG/IEF/SHY/TIP) | 📝 | **spec'd 2026-07-16, build HELD**; evidence-backed ballast/income (60/40 case strong; bonds beat cash ~2%/yr; correlation normalized). Higher-yield home for idle defensive cash. Duration caveat: favor short/intermediate IG. Pending forward-test/gate. See SYSTEM_SPEC §1. |
 
 ## What this means
 - **Implemented & validated (the core engine):** EV gate, 6-regime, risk
