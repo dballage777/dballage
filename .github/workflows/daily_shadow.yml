@@ -45,6 +45,14 @@ jobs:
           python -m experiments.daily_report --out paper/reports || true
           python -m experiments.standings --log paper/shadow_ledger.jsonl --out paper/reports || true
           python -m experiments.export_reports --log paper/shadow_ledger.jsonl --out paper/reports || true
+      - name: Run concurrent shadow signals (S1/S2/S6, observe-only)
+        # ADDITIVE: writes a SEPARATE ledger; reads the main ledger read-only for
+        # the drift monitor. Never touches the 7 paper tests or their data. Failure
+        # here must not fail the daily run, so it is tolerant.
+        run: |
+          python -m experiments.run_shadow_signals \
+            --log paper/signal_shadow_ledger.jsonl \
+            --main-log paper/shadow_ledger.jsonl || true
       - name: Commit ledger + reports (md + csv + pdf)
         run: |
           git config user.name  "shadow-bot"
