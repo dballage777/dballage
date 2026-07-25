@@ -53,6 +53,12 @@ jobs:
           python -m experiments.run_shadow_signals \
             --log paper/signal_shadow_ledger.jsonl \
             --main-log paper/shadow_ledger.jsonl || true
+      - name: Run aggressive shadow (HIGH-RISK, paper only)
+        # ADDITIVE: writes a SEPARATE ledger; quarantined from the 7 paper tests.
+        # Failure here must not fail the daily run, so it is tolerant.
+        run: |
+          python -m experiments.run_aggressive_shadow \
+            --log paper/aggressive_shadow_ledger.jsonl || true
       - name: Commit ledger + reports (md + csv + pdf)
         run: |
           git config user.name  "shadow-bot"

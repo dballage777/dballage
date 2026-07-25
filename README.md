@@ -79,7 +79,9 @@ of the 7 recipes holds, the 3 observe-only shadow signals, the **allocation
 percentages** (caps per basket), the **house rules** (cash-default, position caps,
 hard stop-losses, the 90-day promotion gate), and the **honest monitoring cadence**
 (daily after market close — not real-time). See also
-[`docs/SHADOW_SIGNALS.md`](docs/SHADOW_SIGNALS.md).
+[`docs/SHADOW_SIGNALS.md`](docs/SHADOW_SIGNALS.md) and
+[`docs/AGGRESSIVE_SHADOW.md`](docs/AGGRESSIVE_SHADOW.md) (a HIGH-RISK, paper-only
+aggressive momentum sleeve — evidence-bounded, quarantined from the 7 tests).
 
 📄 Full write-up: [`docs/BACKTEST_SUMMARY.md`](docs/BACKTEST_SUMMARY.md) (plain-English + technical) ·
 📊 [`docs/backtest_metrics.csv`](docs/backtest_metrics.csv) (Google-Sheets-ready) ·
