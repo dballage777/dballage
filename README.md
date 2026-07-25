@@ -73,6 +73,14 @@ SPLV** (a clear, highlighted comparison), each of the six live paper tests (how
 it splits money, when it stays in cash, how often it checks), and honestly how
 this differs from investing yourself or paying a company.
 
+**[`docs/assets/Paper_Tests_Explained.pdf`](docs/assets/Paper_Tests_Explained.pdf)** —
+a short (3-page) plain-English guide to **all the paper & shadow tests**: what each
+of the 7 recipes holds, the 3 observe-only shadow signals, the **allocation
+percentages** (caps per basket), the **house rules** (cash-default, position caps,
+hard stop-losses, the 90-day promotion gate), and the **honest monitoring cadence**
+(daily after market close — not real-time). See also
+[`docs/SHADOW_SIGNALS.md`](docs/SHADOW_SIGNALS.md).
+
 📄 Full write-up: [`docs/BACKTEST_SUMMARY.md`](docs/BACKTEST_SUMMARY.md) (plain-English + technical) ·
 📊 [`docs/backtest_metrics.csv`](docs/backtest_metrics.csv) (Google-Sheets-ready) ·
 📋 design spec: [`docs/SYSTEM_SPEC.md`](docs/SYSTEM_SPEC.md) ·
