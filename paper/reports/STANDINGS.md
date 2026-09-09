@@ -1,18 +1,18 @@
 # Shadow Horse-Race Standings
 
-_Realized paper performance across 51 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
+_Realized paper performance across 52 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
 
 | variant | days | cum return | Sharpe | best | worst | win% | last expo |
 |---|---|---|---|---|---|---|---|
-| market_spy | 31 | +1.70% | 1.22 | +1.80% | -1.54% | +41.94% | 100% |
-| equity_validated | 49 | +0.37% | 0.21 | +2.59% | -2.42% | +14.29% | 100% |
-| equity_full_goal | 49 | -2.96% | -1.24 | +2.34% | -2.52% | +30.61% | 100% |
-| crypto_full_goal | 51 | +8.47% | 3.58 | +4.56% | -0.46% | +29.41% | 0% |
-| full_system | 51 | +4.06% | 1.52 | +4.56% | -2.52% | +23.53% | 0% |
-| full_system_max | 45 | +5.27% | 2.13 | +4.56% | -2.52% | +22.22% | 0% |
-| metals_full_goal | 43 | +1.04% | 1.26 | +0.67% | -0.76% | +48.84% | 20% |
-| full_system_v6 | 44 | +0.78% | 0.35 | +4.93% | -2.96% | +27.27% | 20% |
-| bonds_full_goal | 31 | -0.24% | -2.30 | +0.13% | -0.12% | +41.94% | 0% |
+| market_spy | 32 | +1.70% | 1.20 | +1.80% | -1.54% | +40.62% | 100% |
+| equity_validated | 50 | +0.37% | 0.21 | +2.59% | -2.42% | +14.00% | 100% |
+| equity_full_goal | 50 | -2.96% | -1.23 | +2.34% | -2.52% | +30.00% | 100% |
+| crypto_full_goal | 52 | +8.47% | 3.54 | +4.56% | -0.46% | +28.85% | 36% |
+| full_system | 52 | +4.06% | 1.50 | +4.56% | -2.52% | +23.08% | 36% |
+| full_system_max | 46 | +5.27% | 2.11 | +4.56% | -2.52% | +21.74% | 36% |
+| metals_full_goal | 44 | +1.04% | 1.24 | +0.67% | -0.76% | +47.73% | 20% |
+| full_system_v6 | 45 | +0.78% | 0.34 | +4.93% | -2.96% | +26.67% | 56% |
+| bonds_full_goal | 32 | -0.24% | -2.27 | +0.13% | -0.12% | +40.62% | 0% |
 
 ## Weekly cumulative return
 | period | market_spy | equity_validated | equity_full_goal | crypto_full_goal | full_system | full_system_max | metals_full_goal | full_system_v6 | bonds_full_goal |
@@ -28,6 +28,7 @@ _Realized paper performance across 51 trading day(s). Sharpe needs ~20 days to b
 | 2026-08-17/2026-08-23 | -1.37% | +0.04% | -1.37% | +7.70% | +7.70% | +7.70% | +1.05% | +7.52% | -0.16% |
 | 2026-08-24/2026-08-30 | +0.47% | +0.18% | -0.43% | +0.00% | +0.00% | +0.00% | -0.77% | -0.77% | -0.00% |
 | 2026-08-31/2026-09-06 | -0.98% | -0.92% | -0.90% | +0.00% | +0.00% | +0.00% | -0.42% | -0.42% | -0.07% |
+| 2026-09-07/2026-09-13 | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% |
 
 ## Monthly cumulative return
 | period | market_spy | equity_validated | equity_full_goal | crypto_full_goal | full_system | full_system_max | metals_full_goal | full_system_v6 | bonds_full_goal |
