@@ -1,18 +1,18 @@
 # Shadow Horse-Race Standings
 
-_Realized paper performance across 76 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
+_Realized paper performance across 77 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
 
 | variant | days | cum return | Sharpe | best | worst | win% | last expo |
 |---|---|---|---|---|---|---|---|
-| market_spy | 56 | +2.24% | 1.13 | +1.80% | -1.54% | +30.36% | 100% |
-| equity_validated | 74 | -2.65% | -0.71 | +2.59% | -2.64% | +13.51% | 100% |
-| equity_full_goal | 74 | -6.09% | -1.84 | +2.34% | -2.96% | +24.32% | 100% |
-| crypto_full_goal | 76 | +9.87% | 3.21 | +4.56% | -0.58% | +23.68% | 36% |
-| full_system | 76 | +5.41% | 1.57 | +4.56% | -2.52% | +19.74% | 36% |
-| full_system_max | 70 | +6.64% | 2.05 | +4.56% | -2.52% | +18.57% | 36% |
-| metals_full_goal | 68 | +0.12% | 0.12 | +0.67% | -1.08% | +38.24% | 9% |
-| full_system_v6 | 69 | +1.15% | 0.37 | +4.93% | -2.96% | +28.99% | 45% |
-| bonds_full_goal | 56 | -0.22% | -1.57 | +0.13% | -0.12% | +30.36% | 8% |
+| market_spy | 57 | +2.24% | 1.12 | +1.80% | -1.54% | +29.82% | 100% |
+| equity_validated | 75 | -2.65% | -0.70 | +2.59% | -2.64% | +13.33% | 100% |
+| equity_full_goal | 75 | -6.09% | -1.83 | +2.34% | -2.96% | +24.00% | 100% |
+| crypto_full_goal | 77 | +9.87% | 3.19 | +4.56% | -0.58% | +23.38% | 36% |
+| full_system | 77 | +5.41% | 1.56 | +4.56% | -2.52% | +19.48% | 36% |
+| full_system_max | 71 | +6.64% | 2.03 | +4.56% | -2.52% | +18.31% | 36% |
+| metals_full_goal | 69 | +0.12% | 0.12 | +0.67% | -1.08% | +37.68% | 9% |
+| full_system_v6 | 70 | +1.15% | 0.36 | +4.93% | -2.96% | +28.57% | 45% |
+| bonds_full_goal | 57 | -0.22% | -1.56 | +0.13% | -0.12% | +29.82% | 8% |
 
 ## Weekly cumulative return
 | period | market_spy | equity_validated | equity_full_goal | crypto_full_goal | full_system | full_system_max | metals_full_goal | full_system_v6 | bonds_full_goal |
