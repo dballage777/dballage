@@ -636,3 +636,12 @@ date,sleeve,day_return,n_positions
 2026-10-14,full_system_v6,-0.002452989173444551,5
 2026-10-14,market_spy,-0.010809673492788385,1
 2026-10-14,metals_full_goal,-0.002452989173444551,2
+2026-10-15,bonds_full_goal,0.0005743652089124918,2
+2026-10-15,crypto_full_goal,0.0,3
+2026-10-15,equity_full_goal,0.0,17
+2026-10-15,equity_validated,0.0,17
+2026-10-15,full_system,0.0,3
+2026-10-15,full_system_max,0.0,3
+2026-10-15,full_system_v6,0.0019404705237065162,5
+2026-10-15,market_spy,0.0,1
+2026-10-15,metals_full_goal,0.0019404705237065162,2
