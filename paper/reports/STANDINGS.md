@@ -1,18 +1,18 @@
 # Shadow Horse-Race Standings
 
-_Realized paper performance across 93 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
+_Realized paper performance across 94 trading day(s). Sharpe needs ~20 days to be meaningful; promotion gate ~90._
 
 | variant | days | cum return | Sharpe | best | worst | win% | last expo |
 |---|---|---|---|---|---|---|---|
-| market_spy | 73 | +1.47% | 0.57 | +1.80% | -1.77% | +28.77% | 100% |
-| equity_validated | 91 | -5.88% | -1.27 | +2.59% | -2.76% | +16.48% | 100% |
-| equity_full_goal | 91 | -8.70% | -2.18 | +2.34% | -2.96% | +23.08% | 0% |
-| crypto_full_goal | 93 | +8.35% | 2.44 | +4.56% | -0.63% | +19.35% | 36% |
-| full_system | 93 | +3.95% | 1.05 | +4.56% | -2.52% | +16.13% | 36% |
-| full_system_max | 87 | +5.16% | 1.43 | +4.56% | -2.52% | +14.94% | 36% |
-| metals_full_goal | 85 | +0.16% | 0.14 | +0.67% | -1.08% | +36.47% | 5% |
-| full_system_v6 | 86 | -0.54% | -0.06 | +4.93% | -2.96% | +25.58% | 0% |
-| bonds_full_goal | 73 | -0.13% | -0.75 | +0.13% | -0.12% | +31.51% | 5% |
+| market_spy | 74 | -3.00% | -0.76 | +1.80% | -4.41% | +28.38% | 100% |
+| equity_validated | 92 | -10.88% | -1.99 | +2.59% | -5.31% | +16.30% | 0% |
+| equity_full_goal | 92 | -8.70% | -2.17 | +2.34% | -2.96% | +22.83% | 0% |
+| crypto_full_goal | 94 | +8.35% | 2.42 | +4.56% | -0.63% | +19.15% | 36% |
+| full_system | 94 | +3.95% | 1.04 | +4.56% | -2.52% | +15.96% | 36% |
+| full_system_max | 88 | +5.16% | 1.42 | +4.56% | -2.52% | +14.77% | 36% |
+| metals_full_goal | 86 | +0.22% | 0.18 | +0.67% | -1.08% | +37.21% | 5% |
+| full_system_v6 | 87 | -0.54% | -0.06 | +4.93% | -2.96% | +25.29% | 0% |
+| bonds_full_goal | 74 | -0.11% | -0.67 | +0.13% | -0.12% | +32.43% | 5% |
 
 ## Weekly cumulative return
 | period | market_spy | equity_validated | equity_full_goal | crypto_full_goal | full_system | full_system_max | metals_full_goal | full_system_v6 | bonds_full_goal |
@@ -36,7 +36,7 @@ _Realized paper performance across 93 trading day(s). Sharpe needs ~20 days to b
 | 2026-10-12/2026-10-18 | -1.14% | -1.77% | -1.75% | +0.85% | +0.85% | +0.85% | -0.13% | +0.73% | +0.08% |
 | 2026-10-19/2026-10-25 | +0.00% | +0.00% | +0.00% | -0.52% | -0.52% | -0.52% | +0.00% | -0.52% | +0.00% |
 | 2026-10-26/2026-11-01 | -1.11% | -1.20% | -0.62% | -0.63% | -0.63% | -0.63% | -0.28% | -0.91% | +0.03% |
-| 2026-11-02/2026-11-08 | +1.47% | -0.65% | -0.68% | -0.25% | -0.25% | -0.25% | +0.38% | -0.21% | +0.00% |
+| 2026-11-02/2026-11-08 | -3.01% | -5.93% | -0.68% | -0.25% | -0.25% | -0.25% | +0.44% | -0.21% | +0.02% |
 
 ## Monthly cumulative return
 | period | market_spy | equity_validated | equity_full_goal | crypto_full_goal | full_system | full_system_max | metals_full_goal | full_system_v6 | bonds_full_goal |
@@ -46,6 +46,6 @@ _Realized paper performance across 93 trading day(s). Sharpe needs ~20 days to b
 | 2026-08 | +2.68% | +2.85% | +2.42% | +7.60% | +7.60% | +7.60% | +1.96% | +6.94% | -0.11% |
 | 2026-09 | -1.43% | -3.71% | -4.00% | -0.81% | -0.81% | -0.81% | -1.32% | -2.13% | -0.11% |
 | 2026-10 | -0.93% | -3.04% | -2.39% | +0.96% | +0.96% | +0.96% | -0.34% | +0.61% | +0.16% |
-| 2026-11 | +1.47% | -0.65% | -0.68% | -0.25% | -0.25% | -0.25% | +0.38% | -0.21% | +0.00% |
+| 2026-11 | -3.01% | -5.93% | -0.68% | -0.25% | -0.25% | -0.25% | +0.44% | -0.21% | +0.02% |
 
 _Shadow/paper only — realized returns of logged decisions, zero real capital. The question: does any GOAL variant out-Sharpe `equity_validated`?_
