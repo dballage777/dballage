@@ -132,3 +132,29 @@ the framework did its job.
 4. Evaluate IC separately in calm vs stressed regimes.
 5. **Live-data rerun** (Codespaces/Colab, 10y, full universe) before any Alpaca
    paper trading.
+
+---
+
+## 2026-11-20 — Paper-ledger integrity audit (stale prices) + learning-loop review
+
+New tool: `python -m experiments.audit_shadow` re-marks every shadow-ledger row
+against real yfinance closes using the runner's own attribution rule (it reproduces
+the ledger exactly on fresh days).
+
+* **~30% of paper sleeve-days were stale** (360 / 1,198; 281 / 871 in the main
+  ledger): logged 0.00% while the held book moved. Cause: `v12/data/loader.py`
+  forward-fills without limit and without a per-ticker freshness check, so partial
+  yfinance downloads froze prices (affects decisions too, not just P&L).
+* **On real prices no variant made money** (Jul 22 – Nov 19, SPY −4.09%):
+  `crypto_full_goal` +4.63% logged → −2.16% real; `full_system` +0.38% → −6.22%.
+  `equity_validated` −7.08% with higher vol and deeper DD than SPY: paper has
+  not (yet) confirmed the backtest drawdown edge.
+* **VRP exposure timer (S2)** is the only component consistent with the thesis:
+  +0.34% vs SPY −3.98%, max DD −4.1% vs −8.1% (84 days, observe-only).
+* **Learning loop** zeroed the stock sleeve on 84/105 runs on the strength of a
+  stale-inflated crypto Sharpe; it also has an all-negative fallback that restores
+  full exposure. Drift monitor flags every sleeve incl. the SPY benchmark.
+
+Verdict: promotion clock reset until the data-freshness fix lands. Still Phase 0.
+Reports: `docs/reports/FULL_REPORT_2026-11-20.md`,
+`docs/reports/LEARNING_LOOP_REPORT_2026-11-20.md`.
